@@ -40,90 +40,11 @@
       </intent-filter>
     </activity>
     <activity
-        android:name=".customexample.RtmpActivity"
-        android:label="@string/rtmp_streamer"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".customexample.RtspActivity"
-        android:label="@string/rtsp_streamer"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".defaultexample.ExampleRtspActivity"
-        android:label="@string/default_rtsp"
-        android:screenOrientation="portrait"
-        />
-    <activity
         android:name=".defaultexample.ExampleRtmpActivity"
         android:label="@string/default_rtmp"
         android:screenOrientation="portrait"
         />
-    <activity
-        android:name=".filestreamexample.RtspFromFileActivity"
-        android:label="@string/from_file_rtsp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".filestreamexample.RtmpFromFileActivity"
-        android:label="@string/from_file_rtmp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".surfacemodeexample.SurfaceModeRtspActivity"
-        android:label="@string/surface_mode_rtsp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".surfacemodeexample.SurfaceModeRtmpActivity"
-        android:label="@string/surface_mode_rtmp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".texturemodeexample.TextureModeRtspActivity"
-        android:label="@string/texture_mode_rtsp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".texturemodeexample.TextureModeRtmpActivity"
-        android:label="@string/texture_mode_rtmp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".openglexample.OpenGlRtmpActivity"
-        android:label="@string/opengl_rtmp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".openglexample.OpenGlRtspActivity"
-        android:label="@string/opengl_rtsp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".displayexample.DisplayActivity"
-        android:label="@string/display_rtmp"
-        android:screenOrientation="portrait"
-        />
-    <activity
-        android:name=".backgroundexample.BackgroundActivity"
-        android:label="@string/service_rtp"
-        />
 
-    <activity android:name=".rotation.RotationExampleActivity"
-        android:label="@string/rotation_rtmp"
-        android:screenOrientation="fullSensor"
-        />
-
-    <service android:name=".rotation.StreamService"
-        android:foregroundServiceType="mediaProjection"
-        />
-
-    <service android:name=".backgroundexample.RtpService"
-        />
-
-    <service android:name=".displayexample.DisplayService"
-        android:foregroundServiceType="mediaProjection"
-        />
   </application>
 
 </manifest>
