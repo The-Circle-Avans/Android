@@ -6,30 +6,24 @@
     android:gravity="center"
     android:orientation="vertical" >
 
-  <LinearLayout
+  <TextView
+      android:id="@+id/textView3"
       android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:orientation="vertical">
+      android:layout_height="wrap_content"
+      android:gravity="center_horizontal"
+      android:text="Welcome to SeeChange"
+      android:textAlignment="center"
+      android:textColor="@color/appColor"
+      android:textSize="30dp" />
 
-
-    <TextView
-        android:id="@+id/textView3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Welcome to SeeChange"
-        android:textColor="@color/black"
-        android:textAlignment="center"
-        android:textSize="30dp"
-        android:paddingTop="20dp"
-        android:gravity="center_horizontal" />
-
-    <TextView
+  <TextView
         android:id="@+id/textView4"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="We could not find your user details"
         android:textAlignment="center"
         android:paddingTop="20dp"
+        android:layout_marginBottom="150dp"
         android:gravity="center_horizontal" />
 
     <TextView
@@ -81,5 +75,4 @@
         />
 
 
-  </LinearLayout>
 </LinearLayout>

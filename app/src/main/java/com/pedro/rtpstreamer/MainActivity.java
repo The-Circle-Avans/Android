@@ -17,30 +17,21 @@
 package com.pedro.rtpstreamer;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.GridView;
-import android.widget.TextView;
+
+import android.os.Handler;
 import android.widget.Toast;
 
-import com.pedro.rtpstreamer.defaultexample.ExampleRtmpActivity;
-import com.pedro.rtpstreamer.utils.ActivityLink;
-import com.pedro.rtpstreamer.utils.ImageAdapter;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN_MR2;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
+
+import com.pedro.rtpstreamer.domain.User;
 
 public class MainActivity extends AppCompatActivity  {
 
@@ -60,6 +51,7 @@ public class MainActivity extends AppCompatActivity  {
     if (!hasPermissions(this, PERMISSIONS)) {
       ActivityCompat.requestPermissions(this, PERMISSIONS, 1);
     }
+
   }
 
 
