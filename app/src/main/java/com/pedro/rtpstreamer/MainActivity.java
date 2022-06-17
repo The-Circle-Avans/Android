@@ -42,10 +42,8 @@ import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN_MR2;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
+public class MainActivity extends AppCompatActivity  {
 
-  private GridView list;
-  private List<ActivityLink> activities;
 
   private final String[] PERMISSIONS = {
       Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA,
@@ -57,45 +55,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
     overridePendingTransition(R.transition.slide_in, R.transition.slide_out);
-    TextView tvVersion = findViewById(R.id.tv_version);
-    tvVersion.setText(getString(R.string.version, BuildConfig.VERSION_NAME));
 
-    list = findViewById(R.id.list);
-    createList();
-    setListAdapter(activities);
 
     if (!hasPermissions(this, PERMISSIONS)) {
       ActivityCompat.requestPermissions(this, PERMISSIONS, 1);
     }
   }
 
-  @SuppressLint("NewApi")
-  private void createList() {
-    activities = new ArrayList<>();
-    activities.add(new ActivityLink(new Intent(this, ExampleRtmpActivity.class),
-        getString(R.string.default_rtmp), JELLY_BEAN));
-  }
 
-  private void setListAdapter(List<ActivityLink> activities) {
-    list.setAdapter(new ImageAdapter(activities));
-    list.setOnItemClickListener(this);
-  }
-
-  @Override
-  public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-    if (hasPermissions(this, PERMISSIONS)) {
-      ActivityLink link = activities.get(i);
-      int minSdk = link.getMinSdk();
-      if (Build.VERSION.SDK_INT >= minSdk) {
-        startActivity(link.getIntent());
-        overridePendingTransition(R.transition.slide_in, R.transition.slide_out);
-      } else {
-        showMinSdkError(minSdk);
-      }
-    } else {
-      showPermissionsErrorAndRequest();
-    }
-  }
 
   private void showMinSdkError(int minSdk) {
     String named;

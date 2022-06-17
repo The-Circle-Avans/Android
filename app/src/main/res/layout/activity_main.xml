@@ -4,42 +4,82 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
-    android:orientation="vertical"
-    >
+    android:orientation="vertical" >
 
-  <TextView
-      android:id="@+id/tv_version"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:textColor="@color/appColor"
-      android:textSize="12sp"
-      android:layout_marginTop="@dimen/grid_2"
-      android:layout_marginLeft="@dimen/grid_2"
-      android:layout_marginRight="@dimen/grid_2"
-      />
-  <TextView
-      android:id="@+id/tv_select"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="@dimen/grid_2"
-      android:layout_marginLeft="@dimen/grid_2"
-      android:layout_marginRight="@dimen/grid_2"
-      android:text="@string/tv_select"
-      android:textColor="@color/appColor"
-      android:textSize="22sp"
-      />
-
-  <GridView
-      android:id="@+id/list"
+  <LinearLayout
       android:layout_width="match_parent"
       android:layout_height="match_parent"
-      android:layout_marginTop="@dimen/grid_1"
-      android:columnWidth="40dp"
-      android:gravity="center"
-      android:horizontalSpacing="@dimen/grid_2"
-      android:numColumns="2"
-      android:padding="@dimen/grid_2"
-      android:stretchMode="columnWidth"
-      android:verticalSpacing="@dimen/grid_2"
-      />
+      android:orientation="vertical">
+
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Welcome to SeeChange"
+        android:textColor="@color/black"
+        android:textAlignment="center"
+        android:textSize="30dp"
+        android:paddingTop="20dp"
+        android:gravity="center_horizontal" />
+
+    <TextView
+        android:id="@+id/textView4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="We could not find your user details"
+        android:textAlignment="center"
+        android:paddingTop="20dp"
+        android:gravity="center_horizontal" />
+
+    <TextView
+        android:id="@+id/textView5"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Please enter your private key:"
+        android:textAlignment="center"
+        android:paddingTop="5dp"
+        android:gravity="center_horizontal" />
+
+    <EditText
+        android:id="@+id/editTextTextPersonName2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPassword"
+        android:text=""
+        />
+
+    <TextView
+        android:id="@+id/textView6"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Please enter your username:"
+        android:textAlignment="center"
+        android:paddingTop="30dp"
+        android:gravity="center_horizontal"
+        />
+
+    <EditText
+        android:id="@+id/editTextTextPersonName3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text="" />
+
+    <Button
+        android:id="@+id/button"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:text="SUBMIT"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:layout_marginTop="30dp"
+        android:background="@color/appColor"
+
+
+        />
+
+
+  </LinearLayout>
 </LinearLayout>
