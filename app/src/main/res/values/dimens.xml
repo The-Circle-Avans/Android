@@ -13,4 +13,5 @@
   <dimen name="grid_8">32dp</dimen>
   <dimen name="grid_9">36dp</dimen>
   <dimen name="grid_10">40dp</dimen>
+    <dimen name="fab_margin">16dp</dimen>
 </resources>

@@ -18,23 +18,21 @@ package com.pedro.rtpstreamer;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.os.Handler;
-import android.widget.Toast;
+import com.pedro.rtpstreamer.defaultexample.ExampleRtmpActivity;
 
-import static android.os.Build.VERSION_CODES.JELLY_BEAN_MR2;
-import static android.os.Build.VERSION_CODES.LOLLIPOP;
-
-import com.pedro.rtpstreamer.domain.User;
 
 public class MainActivity extends AppCompatActivity  {
-
+  private static int SPLASH_TIME_OUT=3000;
 
   private final String[] PERMISSIONS = {
       Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA,
@@ -52,31 +50,28 @@ public class MainActivity extends AppCompatActivity  {
       ActivityCompat.requestPermissions(this, PERMISSIONS, 1);
     }
 
+    new Handler().postDelayed(new Runnable() {
+      @Override
+      public void run() {
+        SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.PREFS_NAME, 0);
+        boolean hasLoggedIn = sharedPreferences.getBoolean("hasLoggedIn", false);
+
+        Intent intent;
+        if (hasLoggedIn) {
+          intent = new Intent(MainActivity.this, ExampleRtmpActivity.class);
+        } else {
+          intent = new Intent(MainActivity.this, LoginActivity.class);
+        }
+        startActivity(intent);
+        finish();
+
+      }
+    }, SPLASH_TIME_OUT);
+
+
+
   }
 
-
-
-  private void showMinSdkError(int minSdk) {
-    String named;
-    switch (minSdk) {
-      case JELLY_BEAN_MR2:
-        named = "JELLY_BEAN_MR2";
-        break;
-      case LOLLIPOP:
-        named = "LOLLIPOP";
-        break;
-      default:
-        named = "JELLY_BEAN";
-        break;
-    }
-    Toast.makeText(this, "You need min Android " + named + " (API " + minSdk + " )",
-        Toast.LENGTH_SHORT).show();
-  }
-
-  private void showPermissionsErrorAndRequest() {
-    Toast.makeText(this, "You need permissions before", Toast.LENGTH_SHORT).show();
-    ActivityCompat.requestPermissions(this, PERMISSIONS, 1);
-  }
 
   private boolean hasPermissions(Context context, String... permissions) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
