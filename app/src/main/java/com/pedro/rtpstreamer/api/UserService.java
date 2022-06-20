@@ -1,4 +1,4 @@
-package com.pedro.rtpstreamer;
+package com.pedro.rtpstreamer.api;
 
 import retrofit2.Callback;
 import retrofit2.http.GET;

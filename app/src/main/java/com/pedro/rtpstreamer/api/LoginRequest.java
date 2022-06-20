@@ -1,4 +1,4 @@
-package com.pedro.rtpstreamer;
+package com.pedro.rtpstreamer.api;
 
 public class LoginRequest {
 
