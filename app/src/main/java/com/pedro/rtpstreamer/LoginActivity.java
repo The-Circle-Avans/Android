@@ -12,6 +12,8 @@ import com.pedro.rtpstreamer.defaultexample.ExampleRtmpActivity;
 
 public class LoginActivity extends AppCompatActivity {
 
+    // TO-DO ADD VALIDATION
+
     public static String PREFS_NAME="MyPrefsFile";
     private Button signIn;
 
