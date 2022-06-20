@@ -4,8 +4,8 @@ import retrofit2.Callback;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
 
-public interface UserApiCall {
+public interface UserService {
 
     @GET("/api/key")
-    void getUserByName(@Query("user") String user, Callback<String> cb);
+    void getUserByName(@Query("user") String user, Callback<LoginResponse> cb);
 }
