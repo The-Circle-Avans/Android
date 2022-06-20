@@ -7,7 +7,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
-    private final static String baseURL = "";
+    private final static String baseURL = "https://thecircle-thruyou.herokuapp.com";
     private static Retrofit retrofit;
     private static Gson gson;
 
