@@ -1,22 +1,9 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtmp.rtmp
 
 import android.media.MediaCodec
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
 import android.util.Log
 import com.pedro.rtmp.amf.v0.AmfNumber
 import com.pedro.rtmp.amf.v0.AmfObject
@@ -28,17 +15,14 @@ import com.pedro.rtmp.rtmp.message.control.Type
 import com.pedro.rtmp.rtmp.message.control.UserControl
 import com.pedro.rtmp.utils.AuthUtil
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
+import com.pedro.rtmp.utils.CreateSSLSocket
 import com.pedro.rtmp.utils.RtmpConfig
-import com.pedro.rtmp.utils.socket.RtmpSocket
-import com.pedro.rtmp.utils.socket.TcpSocket
-import com.pedro.rtmp.utils.socket.TcpTunneledSocket
 import java.io.*
-import java.net.*
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.net.SocketAddress
 import java.nio.ByteBuffer
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
+import java.util.*
 import java.util.regex.Pattern
 
 /**
@@ -47,10 +31,12 @@ import java.util.regex.Pattern
 class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
 
   private val TAG = "RtmpClient"
-  private val rtmpUrlPattern = Pattern.compile("^rtmpt?s?://([^/:]+)(?::(\\d+))*/([^/]+)/?([^*]*)$")
+  private val rtmpUrlPattern = Pattern.compile("^rtmps?://([^/:]+)(?::(\\d+))*/([^/]+)/?([^*]*)$")
 
-  private var socket: RtmpSocket? = null
-  private var thread: ExecutorService? = null
+  private var connectionSocket: Socket? = null
+  private var reader: BufferedInputStream? = null
+  private var writer: BufferedOutputStream? = null
+  private var thread: HandlerThread? = null
   private val commandsManager = CommandsManager()
   private val rtmpSender = RtmpSender(connectCheckerRtmp, commandsManager)
 
@@ -60,14 +46,12 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
 
   private var url: String? = null
   private var tlsEnabled = false
-  private var tunneled = false
 
   private var doingRetry = false
   private var numRetry = 0
   private var reTries = 0
-  private var handler: ScheduledExecutorService? = null
+  private val handler: Handler = Handler(Looper.getMainLooper())
   private var runnable: Runnable? = null
-  private var checkServerAlive = false
   private var publishPermitted = false
 
   val droppedAudioFrames: Long
@@ -82,35 +66,12 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
   val sentVideoFrames: Long
     get() = rtmpSender.getSentVideoFrames()
 
-  /**
-   * Check periodically if server is alive using Echo protocol.
-   */
-  fun setCheckServerAlive(enabled: Boolean) {
-    checkServerAlive = enabled
-  }
-
-  /**
-   * Must be called before connect
-   */
   fun setOnlyAudio(onlyAudio: Boolean) {
-    commandsManager.audioDisabled = false
-    commandsManager.videoDisabled = onlyAudio
-  }
-
-  /**
-   * Must be called before connect
-   */
-  fun setOnlyVideo(onlyVideo: Boolean) {
-    commandsManager.videoDisabled = false
-    commandsManager.audioDisabled = onlyVideo
+    commandsManager.isOnlyAudio = onlyAudio
   }
 
   fun forceAkamaiTs(enabled: Boolean) {
     commandsManager.akamaiTs = enabled
-  }
-
-  fun setWriteChunkSize(chunkSize: Int) {
-    RtmpConfig.writeChunkSize = chunkSize
   }
 
   fun setAuthorization(user: String?, password: String?) {
@@ -145,17 +106,13 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
     commandsManager.setVideoResolution(width, height)
   }
 
-  fun setFps(fps: Int) {
-    commandsManager.setFps(fps)
-  }
-
   @JvmOverloads
   fun connect(url: String?, isRetry: Boolean = false) {
     if (!isRetry) doingRetry = true
     if (url == null) {
       isStreaming = false
       connectCheckerRtmp.onConnectionFailedRtmp(
-          "Endpoint malformed, should be: rtmp://ip:port/appname/streamname")
+        "Endpoint malformed, should be: rtmp://ip:port/appname/streamname")
       return
     }
     if (!isStreaming || isRetry) {
@@ -163,79 +120,60 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
       connectCheckerRtmp.onConnectionStartedRtmp(url)
       val rtmpMatcher = rtmpUrlPattern.matcher(url)
       if (rtmpMatcher.matches()) {
-        val schema = rtmpMatcher.group(0) ?: ""
-        tunneled = schema.startsWith("rtmpt")
-        tlsEnabled = schema.startsWith("rtmps") || schema.startsWith("rtmpts")
+        tlsEnabled = (rtmpMatcher.group(0) ?: "").startsWith("rtmps")
       } else {
         connectCheckerRtmp.onConnectionFailedRtmp(
-            "Endpoint malformed, should be: rtmp://ip:port/appname/streamname")
+          "Endpoint malformed, should be: rtmp://ip:port/appname/streamname")
         return
       }
 
       commandsManager.host = rtmpMatcher.group(1) ?: ""
       val portStr = rtmpMatcher.group(2)
-      val defaultPort = if (tlsEnabled) 443 else if (tunneled) 80 else 1935
-      commandsManager.port = portStr?.toInt() ?: defaultPort
+      commandsManager.port = portStr?.toInt() ?: 1935
       commandsManager.appName = getAppName(rtmpMatcher.group(3) ?: "", rtmpMatcher.group(4) ?: "")
       commandsManager.streamName = getStreamName(rtmpMatcher.group(4) ?: "")
       commandsManager.tcUrl = getTcUrl((rtmpMatcher.group(0)
-          ?: "").substring(0, (rtmpMatcher.group(0)
-          ?: "").length - commandsManager.streamName.length))
+        ?: "").substring(0, (rtmpMatcher.group(0)
+        ?: "").length - commandsManager.streamName.length))
 
       isStreaming = true
-      thread = Executors.newSingleThreadExecutor()
-      thread?.execute post@{
-        try {
-          if (!establishConnection()) {
-            connectCheckerRtmp.onConnectionFailedRtmp("Handshake failed")
+      thread = HandlerThread(TAG)
+      thread?.start()
+      thread?.let {
+        val h = Handler(it.looper)
+        h.post {
+          try {
+            if (!establishConnection()) {
+              connectCheckerRtmp.onConnectionFailedRtmp("Handshake failed")
+              return@post
+            }
+            val writer = this.writer ?: throw IOException("Invalid writer, Connection failed")
+            commandsManager.sendConnect("", writer)
+            //read packets until you did success connection to server and you are ready to send packets
+            while (!Thread.interrupted() && !publishPermitted) {
+              //Handle all command received and send response for it.
+              handleMessages()
+            }
+            //read packet because maybe server want send you something while streaming
+            handleServerPackets()
+          } catch (e: Exception) {
+            Log.e(TAG, "connection error", e)
+            connectCheckerRtmp.onConnectionFailedRtmp("Error configure stream, ${e.message}")
             return@post
           }
-          val socket = this.socket ?: throw IOException("Invalid socket, Connection failed")
-          commandsManager.sendChunkSize(socket)
-          commandsManager.sendConnect("", socket)
-          //read packets until you did success connection to server and you are ready to send packets
-          while (!Thread.interrupted() && !publishPermitted) {
-            //Handle all command received and send response for it.
-            handleMessages()
-          }
-          //read packet because maybe server want send you something while streaming
-          handleServerPackets()
-        } catch (e: Exception) {
-          Log.e(TAG, "connection error", e)
-          connectCheckerRtmp.onConnectionFailedRtmp("Error configure stream, ${e.message}")
-          return@post
         }
       }
     }
   }
 
   private fun handleServerPackets() {
-    while (!Thread.interrupted() && isStreaming) {
-      try {
-        if (isAlive()) {
-          //ignore packet after connect if tunneled to avoid spam idle
-          if (!tunneled) handleMessages()
-        } else {
-          Thread.currentThread().interrupt()
-          connectCheckerRtmp.onConnectionFailedRtmp("No response from server")
-        }
-      } catch (ignored: SocketTimeoutException) {
-        //new packet not found
-      } catch (e: Exception) {
-        Thread.currentThread().interrupt()
+    try {
+      while (!Thread.interrupted()) {
+        handleMessages()
       }
-    }
-  }
-
-  /*
-    Send a heartbeat to know if server is alive using Echo Protocol.
-    Your firewall could block it.
-   */
-  private fun isAlive(): Boolean {
-    val connected = socket?.isConnected() ?: false
-    if (!checkServerAlive) return connected
-    val reachable = socket?.isReachable() ?: false
-    return if (connected && !reachable) false else connected
+    } catch (e: InterruptedException) {
+      Thread.currentThread().interrupt()
+    } catch (e: Exception) { }
   }
 
   private fun getAppName(app: String, name: String): String {
@@ -264,19 +202,25 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
 
   @Throws(IOException::class)
   private fun establishConnection(): Boolean {
-    val socket = if (tunneled) {
-      TcpTunneledSocket(commandsManager.host, commandsManager.port, tlsEnabled)
+    val socket: Socket
+    if (!tlsEnabled) {
+      socket = Socket()
+      val socketAddress: SocketAddress = InetSocketAddress(commandsManager.host, commandsManager.port)
+      socket.connect(socketAddress, 5000)
     } else {
-      TcpSocket(commandsManager.host, commandsManager.port, tlsEnabled)
+      socket = CreateSSLSocket.createSSlSocket(commandsManager.host, commandsManager.port) ?: throw IOException("Socket creation failed")
     }
-    this.socket = socket
-    socket.connect()
-    if (!socket.isConnected()) return false
+    socket.soTimeout = 5000
+    val reader = BufferedInputStream(socket.getInputStream())
+    val writer = BufferedOutputStream(socket.getOutputStream())
     val timestamp = System.currentTimeMillis() / 1000
     val handshake = Handshake()
-    if (!handshake.sendHandshake(socket)) return false
+    if (!handshake.sendHandshake(reader, writer)) return false
     commandsManager.timestamp = timestamp.toInt()
     commandsManager.startTs = System.nanoTime() / 1000
+    connectionSocket = socket
+    this.reader = reader
+    this.writer = writer
     return true
   }
 
@@ -285,9 +229,10 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
    */
   @Throws(IOException::class)
   private fun handleMessages() {
-    var socket = this.socket ?: throw IOException("Invalid socket, Connection failed")
+    val reader = this.reader ?: throw IOException("Invalid reader, Connection failed")
+    var writer = this.writer ?: throw IOException("Invalid writer, Connection failed")
 
-    val message = commandsManager.readMessageResponse(socket)
+    val message = commandsManager.readMessageResponse(reader)
     when (message.getType()) {
       MessageType.SET_CHUNK_SIZE -> {
         val setChunkSize = message as SetChunkSize
@@ -303,7 +248,7 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
       }
       MessageType.SET_PEER_BANDWIDTH -> {
         val setPeerBandwidth = message as SetPeerBandwidth
-        commandsManager.sendWindowAcknowledgementSize(socket)
+        commandsManager.sendWindowAcknowledgementSize(writer)
       }
       MessageType.ABORT -> {
         val abort = message as Abort
@@ -315,7 +260,7 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
         val userControl = message as UserControl
         when (val type = userControl.type) {
           Type.PING_REQUEST -> {
-            commandsManager.sendPong(userControl.event, socket)
+            commandsManager.sendPong(userControl.event, writer)
           }
           else -> {
             Log.i(TAG, "user control command $type ignored")
@@ -333,12 +278,12 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
                   connectCheckerRtmp.onAuthSuccessRtmp()
                   commandsManager.onAuth = false
                 }
-                commandsManager.createStream(socket)
+                commandsManager.createStream(writer)
               }
               "createStream" -> {
                 try {
                   commandsManager.streamId = (command.data[3] as AmfNumber).value.toInt()
-                  commandsManager.sendPublish(socket)
+                  commandsManager.sendPublish(writer)
                 } catch (e: ClassCastException) {
                   Log.e(TAG, "error parsing _result createStream", e)
                 }
@@ -354,35 +299,35 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
                   if (description.contains("reason=authfail") || description.contains("reason=nosuchuser")) {
                     connectCheckerRtmp.onAuthErrorRtmp()
                   } else if (commandsManager.user != null && commandsManager.password != null &&
-                      description.contains("challenge=") && description.contains("salt=") //adobe response
-                      || description.contains("nonce=")) { //llnw response
+                    description.contains("challenge=") && description.contains("salt=") //adobe response
+                    || description.contains("nonce=")) { //llnw response
                     closeConnection()
                     establishConnection()
-                    socket = this.socket ?: throw IOException("Invalid socket, Connection failed")
+                    writer = this.writer ?: throw IOException("Invalid writer, Connection failed")
                     commandsManager.onAuth = true
                     if (description.contains("challenge=") && description.contains("salt=")) { //create adobe auth
                       val salt = AuthUtil.getSalt(description)
                       val challenge = AuthUtil.getChallenge(description)
                       val opaque = AuthUtil.getOpaque(description)
                       commandsManager.sendConnect(AuthUtil.getAdobeAuthUserResult(commandsManager.user
-                          ?: "", commandsManager.password ?: "",
-                          salt, challenge, opaque), socket)
+                        ?: "", commandsManager.password ?: "",
+                        salt, challenge, opaque), writer)
                     } else if (description.contains("nonce=")) { //create llnw auth
                       val nonce = AuthUtil.getNonce(description)
                       commandsManager.sendConnect(AuthUtil.getLlnwAuthUserResult(commandsManager.user
-                          ?: "", commandsManager.password ?: "",
-                          nonce, commandsManager.appName), socket)
+                        ?: "", commandsManager.password ?: "",
+                        nonce, commandsManager.appName), writer)
                     }
                   } else if (description.contains("code=403")) {
                     if (description.contains("authmod=adobe")) {
                       closeConnection()
                       establishConnection()
-                      socket = this.socket ?: throw IOException("Invalid socket, Connection failed")
+                      writer = this.writer ?: throw IOException("Invalid writer, Connection failed")
                       Log.i(TAG, "sending auth mode adobe")
-                      commandsManager.sendConnect("?authmod=adobe&user=${commandsManager.user}", socket)
+                      commandsManager.sendConnect("?authmod=adobe&user=${commandsManager.user}", writer)
                     } else if (description.contains("authmod=llnw")) {
                       Log.i(TAG, "sending auth mode llnw")
-                      commandsManager.sendConnect("?authmod=llnw&user=${commandsManager.user}", socket)
+                      commandsManager.sendConnect("?authmod=llnw&user=${commandsManager.user}", writer)
                     }
                   } else {
                     connectCheckerRtmp.onAuthErrorRtmp()
@@ -400,10 +345,10 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
             try {
               when (val code = ((command.data[3] as AmfObject).getProperty("code") as AmfString).value) {
                 "NetStream.Publish.Start" -> {
-                  commandsManager.sendMetadata(socket)
+                  commandsManager.sendMetadata(writer)
                   connectCheckerRtmp.onConnectionSuccessRtmp()
 
-                  rtmpSender.socket = socket
+                  rtmpSender.output = writer
                   rtmpSender.start()
                   publishPermitted = true
                 }
@@ -431,7 +376,7 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
   }
 
   private fun closeConnection() {
-    socket?.close()
+    connectionSocket?.close()
     commandsManager.reset()
   }
 
@@ -443,39 +388,52 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
       val reconnectUrl = backupUrl ?: url
       connect(reconnectUrl, true)
     }
-    runnable?.let {
-      handler = Executors.newSingleThreadScheduledExecutor()
-      handler?.schedule(it, delay, TimeUnit.MILLISECONDS)
-    }
+    runnable?.let { handler.postDelayed(it, delay) }
   }
 
   fun disconnect() {
-    runnable?.let { handler?.shutdownNow() }
+    runnable?.let { handler.removeCallbacks(it) }
     disconnect(true)
   }
 
   private fun disconnect(clear: Boolean) {
     if (isStreaming) rtmpSender.stop(clear)
-    thread?.shutdownNow()
-    val executor = Executors.newSingleThreadExecutor()
-    executor.execute post@{
-      try {
-        socket?.let { socket ->
-          commandsManager.sendClose(socket)
+    reader?.close()
+    reader = null
+    thread?.looper?.thread?.interrupt()
+    thread?.looper?.quit()
+    thread?.quit()
+    try {
+      writer?.flush()
+      thread?.join(100)
+    } catch (e: Exception) { }
+    thread = HandlerThread(TAG)
+    thread?.start()
+    thread?.let {
+      val h = Handler(it.looper)
+      h.post {
+        try {
+          writer?.let { writer ->
+            commandsManager.sendClose(writer)
+          }
+          writer?.close()
+          writer = null
+          closeConnection()
+        } catch (e: IOException) {
+          Log.e(TAG, "disconnect error", e)
+        } finally {
+          thread?.looper?.quit()
+          return@post
         }
-      } catch (e: IOException) {
-        Log.e(TAG, "disconnect error", e)
       }
     }
     try {
-      executor.shutdownNow()
-      executor.awaitTermination(200, TimeUnit.MILLISECONDS)
-      thread?.awaitTermination(100, TimeUnit.MILLISECONDS)
+      thread?.join(200) //wait finish sendClose
+      thread?.looper?.thread?.interrupt()
+      thread?.looper?.quit()
+      thread?.quit()
       thread = null
-    } catch (e: Exception) {
-    } finally {
-      closeConnection()
-    }
+    } catch (e: Exception) { }
     if (clear) {
       reTries = numRetry
       doingRetry = false
@@ -487,15 +445,11 @@ class RtmpClient(private val connectCheckerRtmp: ConnectCheckerRtmp) {
   }
 
   fun sendVideo(h264Buffer: ByteBuffer, info: MediaCodec.BufferInfo) {
-    if (!commandsManager.videoDisabled) {
-      rtmpSender.sendVideoFrame(h264Buffer, info)
-    }
+    rtmpSender.sendVideoFrame(h264Buffer, info)
   }
 
   fun sendAudio(aacBuffer: ByteBuffer, info: MediaCodec.BufferInfo) {
-    if (!commandsManager.audioDisabled) {
-      rtmpSender.sendAudioFrame(aacBuffer, info)
-    }
+    rtmpSender.sendAudioFrame(aacBuffer, info)
   }
 
   fun hasCongestion(): Boolean {

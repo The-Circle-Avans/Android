@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtplibrary.multiple;
 
 import android.content.Context;
@@ -77,7 +61,7 @@ public class MultiRtpCamera1 extends Camera1Base {
   private final RtspClient[] rtspClients;
 
   public MultiRtpCamera1(SurfaceView surfaceView, ConnectCheckerRtmp[] connectCheckerRtmpList,
-      ConnectCheckerRtsp[] connectCheckerRtspList) {
+                         ConnectCheckerRtsp[] connectCheckerRtspList) {
     super(surfaceView);
     int rtmpSize = connectCheckerRtmpList != null ? connectCheckerRtmpList.length : 0;
     rtmpClients = new RtmpClient[rtmpSize];
@@ -92,7 +76,7 @@ public class MultiRtpCamera1 extends Camera1Base {
   }
 
   public MultiRtpCamera1(TextureView textureView, ConnectCheckerRtmp[] connectCheckerRtmpList,
-      ConnectCheckerRtsp[] connectCheckerRtspList) {
+                         ConnectCheckerRtsp[] connectCheckerRtspList) {
     super(textureView);
     int rtmpSize = connectCheckerRtmpList != null ? connectCheckerRtmpList.length : 0;
     rtmpClients = new RtmpClient[rtmpSize];
@@ -108,7 +92,7 @@ public class MultiRtpCamera1 extends Camera1Base {
 
   @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
   public MultiRtpCamera1(OpenGlView openGlView, ConnectCheckerRtmp[] connectCheckerRtmpList,
-      ConnectCheckerRtsp[] connectCheckerRtspList) {
+                         ConnectCheckerRtsp[] connectCheckerRtspList) {
     super(openGlView);
     int rtmpSize = connectCheckerRtmpList != null ? connectCheckerRtmpList.length : 0;
     rtmpClients = new RtmpClient[rtmpSize];
@@ -124,7 +108,7 @@ public class MultiRtpCamera1 extends Camera1Base {
 
   @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
   public MultiRtpCamera1(LightOpenGlView lightOpenGlView, ConnectCheckerRtmp[] connectCheckerRtmpList,
-      ConnectCheckerRtsp[] connectCheckerRtspList) {
+                         ConnectCheckerRtsp[] connectCheckerRtspList) {
     super(lightOpenGlView);
     int rtmpSize = connectCheckerRtmpList != null ? connectCheckerRtmpList.length : 0;
     rtmpClients = new RtmpClient[rtmpSize];
@@ -140,7 +124,7 @@ public class MultiRtpCamera1 extends Camera1Base {
 
   @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
   public MultiRtpCamera1(Context context, ConnectCheckerRtmp[] connectCheckerRtmpList,
-      ConnectCheckerRtsp[] connectCheckerRtspList) {
+                         ConnectCheckerRtsp[] connectCheckerRtspList) {
     super(context);
     int rtmpSize = connectCheckerRtmpList != null ? connectCheckerRtmpList.length : 0;
     rtmpClients = new RtmpClient[rtmpSize];
@@ -354,7 +338,6 @@ public class MultiRtpCamera1 extends Camera1Base {
       } else {
         rtmpClients[index].setVideoResolution(videoEncoder.getWidth(), videoEncoder.getHeight());
       }
-      rtmpClients[index].setFps(videoEncoder.getFps());
       rtmpClients[index].connect(url);
     } else {
       rtspClients[index].connect(url);
@@ -481,16 +464,6 @@ public class MultiRtpCamera1 extends Camera1Base {
     }
     for (RtspClient rtspClient: rtspClients) {
       rtspClient.setLogs(enable);
-    }
-  }
-
-  @Override
-  public void setCheckServerAlive(boolean enable) {
-    for (RtmpClient rtmpClient: rtmpClients) {
-      rtmpClient.setCheckServerAlive(enable);
-    }
-    for (RtspClient rtspClient: rtspClients) {
-      rtspClient.setCheckServerAlive(enable);
     }
   }
 }

@@ -1,24 +1,8 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtmp.rtmp.message
 
+import com.pedro.rtmp.rtmp.chunk.ChunkStreamId
 import com.pedro.rtmp.rtmp.chunk.ChunkType
 import java.io.IOException
-import java.io.InputStream
 import kotlin.experimental.and
 
 /**
@@ -56,24 +40,15 @@ import kotlin.experimental.and
  *
  * Chunk basic header 3
  */
-class BasicHeader(val chunkType: ChunkType, val chunkStreamId: Int) {
+class BasicHeader(val chunkType: ChunkType, val chunkStreamId: ChunkStreamId) {
 
   companion object {
-    fun parseBasicHeader(input: InputStream): BasicHeader {
-      val byte = input.read().toByte()
+    fun parseBasicHeader(byte: Byte): BasicHeader {
       val chunkTypeValue = 0xff and byte.toInt() ushr 6
       val chunkType = ChunkType.values().find { it.mark.toInt() == chunkTypeValue } ?: throw IOException("Unknown chunk type value: $chunkTypeValue")
-      var chunkStreamIdValue = (byte and 0x3F).toInt()
-      if (chunkStreamIdValue > 63) throw IOException("Unknown chunk stream id value: $chunkStreamIdValue")
-      if (chunkStreamIdValue == 0) { //Basic header 2 bytes
-        chunkStreamIdValue = input.read() - 64
-      } else if (chunkStreamIdValue == 1) { //Basic header 3 bytes
-        val a = input.read()
-        val b = input.read()
-        val value = b and 0xff shl 8 and a
-        chunkStreamIdValue = value - 64
-      }
-      return BasicHeader(chunkType, chunkStreamIdValue)
+      val chunkStreamIdValue = byte and 0x3F
+      val chunkStreamId = ChunkStreamId.values().find { it.mark == chunkStreamIdValue } ?: throw IOException("Unknown chunk stream id value: $chunkStreamIdValue")
+      return BasicHeader(chunkType, chunkStreamId)
     }
   }
 

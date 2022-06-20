@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtplibrary.base;
 
 import android.content.Context;
@@ -41,10 +25,8 @@ import com.pedro.encoder.utils.CodecUtil;
 import com.pedro.encoder.video.FormatVideoEncoder;
 import com.pedro.encoder.video.GetVideoData;
 import com.pedro.encoder.video.VideoEncoder;
-import com.pedro.rtplibrary.base.recording.BaseRecordController;
-import com.pedro.rtplibrary.base.recording.RecordController;
 import com.pedro.rtplibrary.util.FpsListener;
-import com.pedro.rtplibrary.util.AndroidMuxerRecordController;
+import com.pedro.rtplibrary.util.RecordController;
 import com.pedro.rtplibrary.view.GlInterface;
 import com.pedro.rtplibrary.view.LightOpenGlView;
 import com.pedro.rtplibrary.view.OffScreenGlThread;
@@ -66,7 +48,7 @@ import java.nio.ByteBuffer;
 
 @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
 public abstract class FromFileBase
-    implements GetVideoData, GetAacData, GetMicrophoneData, LoopFileInterface {
+        implements GetVideoData, GetAacData, GetMicrophoneData, LoopFileInterface {
 
   private static final String TAG = "FromFileBase";
 
@@ -74,7 +56,7 @@ public abstract class FromFileBase
   private AudioEncoder audioEncoder;
   private GlInterface glInterface;
   private boolean streaming = false;
-  protected BaseRecordController recordController;
+  protected RecordController recordController;
   private final FpsListener fpsListener = new FpsListener();
 
   private VideoDecoder videoDecoder;
@@ -90,7 +72,7 @@ public abstract class FromFileBase
   private AudioTrack audioTrackPlayer;
 
   public FromFileBase(VideoDecoderInterface videoDecoderInterface,
-      AudioDecoderInterface audioDecoderInterface) {
+                      AudioDecoderInterface audioDecoderInterface) {
     init(videoDecoderInterface, audioDecoderInterface);
   }
 
@@ -98,35 +80,35 @@ public abstract class FromFileBase
    * OpenGl mode, necessary context.
    */
   public FromFileBase(Context context, VideoDecoderInterface videoDecoderInterface,
-      AudioDecoderInterface audioDecoderInterface) {
+                      AudioDecoderInterface audioDecoderInterface) {
     glInterface = new OffScreenGlThread(context);
     glInterface.init();
     init(videoDecoderInterface, audioDecoderInterface);
   }
 
   public FromFileBase(OpenGlView openGlView, VideoDecoderInterface videoDecoderInterface,
-      AudioDecoderInterface audioDecoderInterface) {
+                      AudioDecoderInterface audioDecoderInterface) {
     glInterface = openGlView;
     glInterface.init();
     init(videoDecoderInterface, audioDecoderInterface);
   }
 
   public FromFileBase(LightOpenGlView lightOpenGlView, VideoDecoderInterface videoDecoderInterface,
-      AudioDecoderInterface audioDecoderInterface) {
+                      AudioDecoderInterface audioDecoderInterface) {
     glInterface = lightOpenGlView;
     glInterface.init();
     init(videoDecoderInterface, audioDecoderInterface);
   }
 
   private void init(VideoDecoderInterface videoDecoderInterface,
-      AudioDecoderInterface audioDecoderInterface) {
+                    AudioDecoderInterface audioDecoderInterface) {
     this.videoDecoderInterface = videoDecoderInterface;
     this.audioDecoderInterface = audioDecoderInterface;
     videoEncoder = new VideoEncoder(this);
     audioEncoder = new AudioEncoder(this);
     videoDecoder = new VideoDecoder(videoDecoderInterface, this);
     audioDecoder = new AudioDecoder(this, audioDecoderInterface, this);
-    recordController = new AndroidMuxerRecordController();
+    recordController = new RecordController();
   }
 
   /**
@@ -152,12 +134,12 @@ public abstract class FromFileBase
    * @throws IOException Normally file not found.
    */
   public boolean prepareVideo(String filePath, int bitRate, int rotation, int avcProfile,
-      int avcProfileLevel) throws IOException {
+                              int avcProfileLevel) throws IOException {
     videoPath = filePath;
     if (!videoDecoder.initExtractor(filePath)) return false;
     boolean result =
-        videoEncoder.prepareVideoEncoder(videoDecoder.getWidth(), videoDecoder.getHeight(), 30,
-            bitRate, rotation, 2, FormatVideoEncoder.SURFACE, avcProfile, avcProfileLevel);
+            videoEncoder.prepareVideoEncoder(videoDecoder.getWidth(), videoDecoder.getHeight(), 30,
+                    bitRate, rotation, 2, FormatVideoEncoder.SURFACE, avcProfile, avcProfileLevel);
     if (!result) return false;
     result = videoDecoder.prepareVideo(videoEncoder.getInputSurface());
     videoEnabled = result;
@@ -184,7 +166,7 @@ public abstract class FromFileBase
     if (!audioDecoder.initExtractor(filePath)) return false;
     audioDecoder.prepareAudio();
     boolean result = audioEncoder.prepareAudioEncoder(bitRate, audioDecoder.getSampleRate(),
-        audioDecoder.isStereo(), audioDecoder.getOutsize());
+            audioDecoder.isStereo(), audioDecoder.getOutsize());
     prepareAudioRtp(audioDecoder.isStereo(), audioDecoder.getSampleRate());
     audioEnabled = result;
     return result;
@@ -192,7 +174,7 @@ public abstract class FromFileBase
 
   public boolean isAudioDeviceEnabled() {
     return audioTrackPlayer != null
-        && audioTrackPlayer.getPlayState() == AudioTrack.PLAYSTATE_PLAYING;
+            && audioTrackPlayer.getPlayState() == AudioTrack.PLAYSTATE_PLAYING;
   }
 
   public void playAudioDevice() {
@@ -201,12 +183,12 @@ public abstract class FromFileBase
         audioTrackPlayer.stop();
       }
       int channel =
-          audioDecoder.isStereo() ? AudioFormat.CHANNEL_OUT_STEREO : AudioFormat.CHANNEL_OUT_MONO;
+              audioDecoder.isStereo() ? AudioFormat.CHANNEL_OUT_STEREO : AudioFormat.CHANNEL_OUT_MONO;
       int buffSize = AudioTrack.getMinBufferSize(audioDecoder.getSampleRate(), channel,
-          AudioFormat.ENCODING_PCM_16BIT);
+              AudioFormat.ENCODING_PCM_16BIT);
       audioTrackPlayer =
-          new AudioTrack(AudioManager.STREAM_MUSIC, audioDecoder.getSampleRate(), channel,
-              AudioFormat.ENCODING_PCM_16BIT, buffSize, AudioTrack.MODE_STREAM);
+              new AudioTrack(AudioManager.STREAM_MUSIC, audioDecoder.getSampleRate(), channel,
+                      AudioFormat.ENCODING_PCM_16BIT, buffSize, AudioTrack.MODE_STREAM);
       audioTrackPlayer.play();
     }
   }
@@ -382,20 +364,18 @@ public abstract class FromFileBase
     }
   }
 
-  public void requestKeyFrame() {
-    if (videoEncoder.isRunning()) {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-        videoEncoder.requestKeyframe();
+  private void requestKeyFrame() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      videoEncoder.requestKeyframe();
+    } else {
+      if (glInterface != null) {
+        glInterface.removeMediaCodecSurface();
+      }
+      videoEncoder.reset();
+      if (glInterface != null) {
+        glInterface.addMediaCodecSurface(videoEncoder.getInputSurface());
       } else {
-        if (glInterface != null) {
-          glInterface.removeMediaCodecSurface();
-        }
-        videoEncoder.reset();
-        if (glInterface != null) {
-          glInterface.addMediaCodecSurface(videoEncoder.getInputSurface());
-        } else {
-          videoDecoder.reset(videoEncoder.getInputSurface());
-        }
+        videoDecoder.reset(videoEncoder.getInputSurface());
       }
     }
   }
@@ -614,9 +594,6 @@ public abstract class FromFileBase
           }
           if (videoEnabled) {
             videoDecoder.stop();
-            boolean loopMode = videoDecoder.isLoopMode();
-            videoDecoder = new VideoDecoder(videoDecoderInterface, this);
-            videoDecoder.setLoopMode(loopMode);
             if (!videoDecoder.initExtractor(videoPath)) {
               throw new IOException("fail to reset video file");
             }
@@ -626,9 +603,6 @@ public abstract class FromFileBase
         } else {
           if (audioEnabled) {
             audioDecoder.stop();
-            boolean loopMode = audioDecoder.isLoopMode();
-            audioDecoder = new AudioDecoder(this, audioDecoderInterface, this);
-            audioDecoder.setLoopMode(loopMode);
             if (!audioDecoder.initExtractor(audioPath)) {
               throw new IOException("fail to reset audio file");
             }
@@ -689,11 +663,5 @@ public abstract class FromFileBase
     audioEncoder.inputPCMData(frame);
   }
 
-  public void setRecordController(BaseRecordController recordController) {
-    if (!isRecording()) this.recordController = recordController;
-  }
-
   public abstract void setLogs(boolean enable);
-
-  public abstract void setCheckServerAlive(boolean enable);
 }

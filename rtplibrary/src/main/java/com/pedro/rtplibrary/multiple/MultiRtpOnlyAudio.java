@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtplibrary.multiple;
 
 import android.media.MediaCodec;
@@ -68,7 +52,7 @@ public class MultiRtpOnlyAudio extends OnlyAudioBase {
   private final RtspClient[] rtspClients;
 
   public MultiRtpOnlyAudio(ConnectCheckerRtmp[] connectCheckerRtmpList,
-      ConnectCheckerRtsp[] connectCheckerRtspList) {
+                           ConnectCheckerRtsp[] connectCheckerRtspList) {
     super();
     int rtmpSize = connectCheckerRtmpList != null ? connectCheckerRtmpList.length : 0;
     rtmpClients = new RtmpClient[rtmpSize];
@@ -383,16 +367,6 @@ public class MultiRtpOnlyAudio extends OnlyAudioBase {
     }
     for (RtspClient rtspClient: rtspClients) {
       rtspClient.setLogs(enable);
-    }
-  }
-
-  @Override
-  public void setCheckServerAlive(boolean enable) {
-    for (RtmpClient rtmpClient: rtmpClients) {
-      rtmpClient.setCheckServerAlive(enable);
-    }
-    for (RtspClient rtspClient: rtspClients) {
-      rtspClient.setCheckServerAlive(enable);
     }
   }
 }

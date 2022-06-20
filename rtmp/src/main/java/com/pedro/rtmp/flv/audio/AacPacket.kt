@@ -1,162 +1,87 @@
-package com.pedro.rtmp.flv.video
+/*
+ * Copyright (C) 2021 pedroSG94.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.pedro.rtmp.flv.audio
 
 import android.media.MediaCodec
-import android.util.Log
 import com.pedro.rtmp.flv.FlvPacket
 import com.pedro.rtmp.flv.FlvType
 import java.nio.ByteBuffer
-import kotlin.experimental.and
+import kotlin.experimental.or
 
 /**
  * Created by pedro on 8/04/21.
- *
- * ISO 14496-15
  */
-class H264Packet (private val videoPacketCallback: VideoPacketCallback) {
+class AacPacket(private val audioPacketCallback: AudioPacketCallback) {
 
-  private val TAG = "H264Packet"
-
-  private val header = ByteArray(5)
-  private val naluSize = 4
-  //first time we need send video config
+  private val header = ByteArray(2)
+  //first time we need send audio config
   private var configSend = false
 
-  private var sps: ByteArray? = null
-  private var pps: ByteArray? = null
-  var profileIop = ProfileIop.BASELINE
+  private var sampleRate = 44100
+  private var isStereo = true
+  //In microphone we are using always 16bits pcm encoding. Change me if needed
+  private var audioSize = AudioSize.SND_16_BIT
+  //In encoder we are using always AAC LC. Change me if needed
+  private val objectType = AudioObjectType.AAC_LC
 
-  enum class Type(val value: Byte) {
-    SEQUENCE(0x00), NALU(0x01), EO_SEQ(0x02)
+  enum class Type(val mark: Byte) {
+    SEQUENCE(0x00), RAW(0x01)
   }
 
-  fun sendVideoInfo(sps: ByteBuffer, pps: ByteBuffer) {
-    val mSps = removeHeader(sps)
-    val mPps = removeHeader(pps)
-
-    val spsBytes = ByteArray(mSps.remaining())
-    val ppsBytes = ByteArray(mPps.remaining())
-    mSps.get(spsBytes, 0, spsBytes.size)
-    mPps.get(ppsBytes, 0, ppsBytes.size)
-
-    this.sps = spsBytes
-    this.pps = ppsBytes
+  fun sendAudioInfo(sampleRate: Int, isStereo: Boolean, audioSize: AudioSize = AudioSize.SND_16_BIT) {
+    this.sampleRate = sampleRate
+    this.isStereo = isStereo
+    this.audioSize = audioSize
   }
 
   fun createFlvAudioPacket(byteBuffer: ByteBuffer, info: MediaCodec.BufferInfo) {
-    byteBuffer.rewind()
-    val ts = info.presentationTimeUs / 1000
-    //header is 5 bytes length:
-    //4 bits FrameType, 4 bits CodecID
-    //1 byte AVCPacketType
-    //3 bytes CompositionTime, the cts.
-    val cts = 0
-    header[2] = (cts shr 16).toByte()
-    header[3] = (cts shr 8).toByte()
-    header[4] = cts.toByte()
-
-    var buffer: ByteArray
+    //header is 2 bytes length
+    //4 bits sound format, 2 bits sound rate, 1 bit sound size, 1 bit sound type
+    //8 bits sound data (always 10 because we aer using aac)
+    header[0] = if (isStereo) AudioSoundType.STEREO.value else AudioSoundType.MONO.value
+    header[0] = header[0] or (audioSize.value shl 1).toByte()
+    val soundRate = when (sampleRate) {
+      44100 -> AudioSoundRate.SR_44_1K
+      22050 -> AudioSoundRate.SR_22K
+      11025 -> AudioSoundRate.SR_11K
+      5500 -> AudioSoundRate.SR_5_5K
+      else -> AudioSoundRate.SR_44_1K
+    }
+    header[0] = header[0] or (soundRate.value shl 2).toByte()
+    header[0] = header[0] or (AudioFormat.AAC.value shl 4).toByte()
+    val buffer: ByteArray
     if (!configSend) {
-      header[0] = ((VideoDataType.KEYFRAME.value shl 4) or VideoFormat.AVC.value).toByte()
-      header[1] = Type.SEQUENCE.value
-
-      val sps = this.sps
-      val pps = this.pps
-      if (sps != null && pps != null) {
-        val config = VideoSpecificConfig(sps, pps, profileIop)
-        buffer = ByteArray(config.size + header.size)
-        config.write(buffer, header.size)
-      } else {
-        Log.e(TAG, "waiting for a valid sps and pps")
-        return
-      }
-
-      System.arraycopy(header, 0, buffer, 0, header.size)
-      videoPacketCallback.onVideoFrameCreated(FlvPacket(buffer, ts, buffer.size, FlvType.VIDEO))
+      val config = AudioSpecificConfig(objectType.value, sampleRate, if (isStereo) 2 else 1)
+      buffer = ByteArray(config.size + header.size)
+      header[1] = Type.SEQUENCE.mark
+      config.write(buffer, header.size)
       configSend = true
-    }
-    if (configSend){
-      val headerSize = getHeaderSize(byteBuffer)
-      if (headerSize == 0) return //invalid buffer or waiting for sps/pps
-      byteBuffer.rewind()
-      val validBuffer = removeHeader(byteBuffer, headerSize)
-      val size = validBuffer.remaining()
-      buffer = ByteArray(header.size + size + naluSize)
+    } else {
+      header[1] = Type.RAW.mark
+      buffer = ByteArray(info.size - info.offset + header.size)
 
-      val type: Int = (validBuffer.get(0) and 0x1F).toInt()
-      var nalType = VideoDataType.INTER_FRAME.value
-      if (type == VideoNalType.IDR.value || info.flags == MediaCodec.BUFFER_FLAG_KEY_FRAME) {
-        nalType = VideoDataType.KEYFRAME.value
-      } else if (type == VideoNalType.SPS.value || type == VideoNalType.PPS.value) {
-        // we don't need send it because we already do it in video config
-        return
-      }
-      header[0] = ((nalType shl 4) or VideoFormat.AVC.value).toByte()
-      header[1] = Type.NALU.value
-      writeNaluSize(buffer, header.size, size)
-      validBuffer.get(buffer, header.size + naluSize, size)
-
-      System.arraycopy(header, 0, buffer, 0, header.size)
-      videoPacketCallback.onVideoFrameCreated(FlvPacket(buffer, ts, buffer.size, FlvType.VIDEO))
+      byteBuffer.get(buffer, header.size, info.size - info.offset)
     }
+    System.arraycopy(header, 0, buffer, 0, header.size)
+    val ts = info.presentationTimeUs / 1000
+    audioPacketCallback.onAudioFrameCreated(FlvPacket(buffer, ts, buffer.size, FlvType.AUDIO))
   }
 
-  //naluSize = UInt32
-  private fun writeNaluSize(buffer: ByteArray, offset: Int, size: Int) {
-    buffer[offset] = (size ushr 24).toByte()
-    buffer[offset + 1] = (size ushr 16).toByte()
-    buffer[offset + 2] = (size ushr 8).toByte()
-    buffer[offset + 3] = size.toByte()
-  }
-
-  private fun removeHeader(byteBuffer: ByteBuffer, size: Int = -1): ByteBuffer {
-    val position = if (size == -1) getStartCodeSize(byteBuffer) else size
-    byteBuffer.position(position)
-    return byteBuffer.slice()
-  }
-
-  private fun getHeaderSize(byteBuffer: ByteBuffer): Int {
-    if (byteBuffer.remaining() < 4) return 0
-
-    val sps = this.sps
-    val pps = this.pps
-    if (sps != null && pps != null) {
-      val startCodeSize = getStartCodeSize(byteBuffer)
-      if (startCodeSize == 0) return 0
-      val startCode = ByteArray(startCodeSize) { 0x00 }
-      startCode[startCodeSize - 1] = 0x01
-      val avcHeader = startCode.plus(sps).plus(startCode).plus(pps).plus(startCode)
-      if (byteBuffer.remaining() < avcHeader.size) return startCodeSize
-
-      val possibleAvcHeader = ByteArray(avcHeader.size)
-      byteBuffer.get(possibleAvcHeader, 0, possibleAvcHeader.size)
-      return if (avcHeader.contentEquals(possibleAvcHeader)) {
-        avcHeader.size
-      } else {
-        startCodeSize
-      }
-    }
-    return 0
-  }
-
-  private fun getStartCodeSize(byteBuffer: ByteBuffer): Int {
-    var startCodeSize = 0
-    if (byteBuffer.get(0).toInt() == 0x00 && byteBuffer.get(1).toInt() == 0x00
-      && byteBuffer.get(2).toInt() == 0x00 && byteBuffer.get(3).toInt() == 0x01) {
-      //match 00 00 00 01
-      startCodeSize = 4
-    } else if (byteBuffer.get(0).toInt() == 0x00 && byteBuffer.get(1).toInt() == 0x00
-      && byteBuffer.get(2).toInt() == 0x01) {
-      //match 00 00 01
-      startCodeSize = 3
-    }
-    return startCodeSize
-  }
-
-  fun reset(resetInfo: Boolean = true) {
-    if (resetInfo) {
-      sps = null
-      pps = null
-    }
+  fun reset() {
     configSend = false
   }
 }

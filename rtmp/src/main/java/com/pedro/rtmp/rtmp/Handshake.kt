@@ -1,24 +1,7 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtmp.rtmp
 
 import android.util.Log
 import com.pedro.rtmp.utils.readUntil
-import com.pedro.rtmp.utils.socket.RtmpSocket
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -74,18 +57,14 @@ class Handshake {
   private var timestampC1 = 0
 
   @Throws(IOException::class)
-  fun sendHandshake(socket: RtmpSocket): Boolean {
-    var output = socket.getOutStream()
+  fun sendHandshake(input: InputStream, output: OutputStream): Boolean {
     writeC0(output)
     val c1 = writeC1(output)
-    socket.flush()
-    var input = socket.getInputStream()
+    output.flush()
     readS0(input)
-    val s1 = readS1(input)
-    output = socket.getOutStream()
-    writeC2(output, s1)
-    socket.flush()
-    input = socket.getInputStream()
+    readS1(input)
+    writeC2(output, c1)
+    output.flush()
     readS2(input, c1)
     return true
   }
@@ -130,9 +109,26 @@ class Handshake {
   }
 
   @Throws(IOException::class)
-  private fun writeC2(output: OutputStream, s1: ByteArray) {
+  private fun writeC2(output: OutputStream, c1: ByteArray) {
     Log.i(TAG, "writing C2")
-    output.write(s1)
+    val c2 = ByteArray(handshakeSize)
+    val timestampData = ByteArray(4)
+    timestampData[0] = (timestampC1 ushr 24).toByte()
+    timestampData[1] = (timestampC1 ushr 16).toByte()
+    timestampData[2] = (timestampC1 ushr 8).toByte()
+    timestampData[3] = timestampC1.toByte()
+    System.arraycopy(timestampData, 0, c2, 0, timestampData.size)
+
+    val timestampData2 = ByteArray(4)
+    val timestampC2 = System.currentTimeMillis() / 1000 - timestampC1
+    timestampData2[0] = (timestampC2 ushr 24).toByte()
+    timestampData2[1] = (timestampC2 ushr 16).toByte()
+    timestampData2[2] = (timestampC2 ushr 8).toByte()
+    timestampData2[3] = timestampC2.toByte()
+    System.arraycopy(timestampData2, 0, c2, timestampData.size, timestampData2.size)
+
+    System.arraycopy(c1, 8, c2, timestampData.size + timestampData2.size, c2.size - (timestampData.size + timestampData2.size))
+    output.write(c2)
     Log.i(TAG, "C2 write successful")
   }
 
@@ -149,12 +145,11 @@ class Handshake {
   }
 
   @Throws(IOException::class)
-  private fun readS1(input: InputStream): ByteArray {
+  private fun readS1(input: InputStream) {
     Log.i(TAG, "reading S1")
     val s1 = ByteArray(handshakeSize)
     input.readUntil(s1)
     Log.i(TAG, "read S1 successful")
-    return s1
   }
 
   @Throws(IOException::class)

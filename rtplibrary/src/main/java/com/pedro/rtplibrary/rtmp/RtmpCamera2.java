@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtplibrary.rtmp;
 
 import android.content.Context;
@@ -158,22 +142,6 @@ public class RtmpCamera2 extends Camera2Base {
     rtmpClient.forceAkamaiTs(enabled);
   }
 
-  /**
-   * Must be called before start stream.
-   *
-   * Default value 128
-   * Range value: 1 to 16777215.
-   *
-   * The most common values example: 128, 4096, 65535
-   *
-   * @param chunkSize packet's chunk size send to server
-   */
-  public void setWriteChunkSize(int chunkSize) {
-    if (!isStreaming()) {
-      rtmpClient.setWriteChunkSize(chunkSize);
-    }
-  }
-
   @Override
   protected void prepareAudioRtp(boolean isStereo, int sampleRate) {
     rtmpClient.setAudioInfo(sampleRate, isStereo);
@@ -186,8 +154,6 @@ public class RtmpCamera2 extends Camera2Base {
     } else {
       rtmpClient.setVideoResolution(videoEncoder.getWidth(), videoEncoder.getHeight());
     }
-    rtmpClient.setFps(videoEncoder.getFps());
-    rtmpClient.setOnlyVideo(!audioInitialized);
     rtmpClient.connect(url);
   }
 
@@ -234,11 +200,6 @@ public class RtmpCamera2 extends Camera2Base {
   @Override
   public void setLogs(boolean enable) {
     rtmpClient.setLogs(enable);
-  }
-
-  @Override
-  public void setCheckServerAlive(boolean enable) {
-    rtmpClient.setCheckServerAlive(enable);
   }
 }
 

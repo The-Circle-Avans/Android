@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtplibrary.base;
 
 import android.media.MediaCodec;
@@ -32,9 +16,7 @@ import com.pedro.encoder.input.audio.GetMicrophoneData;
 import com.pedro.encoder.input.audio.MicrophoneManager;
 import com.pedro.encoder.input.audio.MicrophoneManagerManual;
 import com.pedro.encoder.input.audio.MicrophoneMode;
-import com.pedro.rtplibrary.base.recording.BaseRecordController;
-import com.pedro.rtplibrary.base.recording.RecordController;
-import com.pedro.rtplibrary.util.AndroidMuxerRecordController;
+import com.pedro.rtplibrary.util.RecordController;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -47,14 +29,14 @@ import java.nio.ByteBuffer;
  */
 public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
 
-  protected BaseRecordController recordController;
+  private final RecordController recordController;
   private MicrophoneManager microphoneManager;
   private AudioEncoder audioEncoder;
   private boolean streaming = false;
 
   public OnlyAudioBase() {
     setMicrophoneMode(MicrophoneMode.ASYNC);
-    recordController = new AndroidMuxerRecordController();
+    recordController = new RecordController();
   }
 
   /**
@@ -70,17 +52,10 @@ public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
         microphoneManager = new MicrophoneManagerManual();
         audioEncoder = new AudioEncoder(this);
         audioEncoder.setGetFrame(((MicrophoneManagerManual) microphoneManager).getGetFrame());
-        audioEncoder.setTsModeBuffer(false);
         break;
       case ASYNC:
         microphoneManager = new MicrophoneManager(this);
         audioEncoder = new AudioEncoder(this);
-        audioEncoder.setTsModeBuffer(false);
-        break;
-      case BUFFER:
-        microphoneManager = new MicrophoneManager(this);
-        audioEncoder = new AudioEncoder(this);
-        audioEncoder.setTsModeBuffer(true);
         break;
     }
   }
@@ -115,19 +90,19 @@ public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
    * doesn't support any configuration seated or your device hasn't a AAC encoder).
    */
   public boolean prepareAudio(int audioSource, int bitrate, int sampleRate, boolean isStereo, boolean echoCanceler,
-      boolean noiseSuppressor) {
+                              boolean noiseSuppressor) {
     if (!microphoneManager.createMicrophone(audioSource, sampleRate, isStereo, echoCanceler, noiseSuppressor)) {
       return false;
     }
     prepareAudioRtp(isStereo, sampleRate);
     return audioEncoder.prepareAudioEncoder(bitrate, sampleRate, isStereo,
-        microphoneManager.getMaxInputSize());
+            microphoneManager.getMaxInputSize());
   }
 
   public boolean prepareAudio(int bitrate, int sampleRate, boolean isStereo, boolean echoCanceler,
-      boolean noiseSuppressor) {
+                              boolean noiseSuppressor) {
     return prepareAudio(MediaRecorder.AudioSource.DEFAULT, bitrate, sampleRate, isStereo, echoCanceler,
-        noiseSuppressor);
+            noiseSuppressor);
   }
 
   public boolean prepareAudio(int bitrate, int sampleRate, boolean isStereo) {
@@ -172,7 +147,7 @@ public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
    */
   @RequiresApi(api = Build.VERSION_CODES.O)
   public void startRecord(@NonNull final FileDescriptor fd,
-      @Nullable RecordController.Listener listener) throws IOException {
+                          @Nullable RecordController.Listener listener) throws IOException {
     recordController.startRecord(fd, listener);
     if (!streaming) {
       startEncoders();
@@ -302,17 +277,6 @@ public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
   public abstract void resetDroppedVideoFrames();
 
   /**
-   * Set a custom size of audio buffer input.
-   * If you set 0 or less you can disable it to use library default value.
-   * Must be called before of prepareAudio method.
-   *
-   * @param size in bytes. Recommended multiple of 1024 (2048, 4096, 8196, etc)
-   */
-  public void setAudioMaxInputSize(int size) {
-    microphoneManager.setMaxInputSize(size);
-  }
-
-  /**
    * Mute microphone, can be called before, while and after stream.
    */
   public void disableAudio() {
@@ -364,11 +328,5 @@ public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
     recordController.setAudioFormat(mediaFormat, true);
   }
 
-  public void setRecordController(BaseRecordController recordController) {
-    if (!isRecording()) this.recordController = recordController;
-  }
-
   public abstract void setLogs(boolean enable);
-
-  public abstract void setCheckServerAlive(boolean enable);
 }

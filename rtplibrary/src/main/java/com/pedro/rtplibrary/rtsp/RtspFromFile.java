@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtplibrary.rtsp;
 
 import android.content.Context;
@@ -46,25 +30,25 @@ public class RtspFromFile extends FromFileBase {
   private final RtspClient rtspClient;
 
   public RtspFromFile(ConnectCheckerRtsp connectCheckerRtsp,
-      VideoDecoderInterface videoDecoderInterface, AudioDecoderInterface audioDecoderInterface) {
+                      VideoDecoderInterface videoDecoderInterface, AudioDecoderInterface audioDecoderInterface) {
     super(videoDecoderInterface, audioDecoderInterface);
     rtspClient = new RtspClient(connectCheckerRtsp);
   }
 
   public RtspFromFile(Context context, ConnectCheckerRtsp connectCheckerRtsp,
-      VideoDecoderInterface videoDecoderInterface, AudioDecoderInterface audioDecoderInterface) {
+                      VideoDecoderInterface videoDecoderInterface, AudioDecoderInterface audioDecoderInterface) {
     super(context, videoDecoderInterface, audioDecoderInterface);
     rtspClient = new RtspClient(connectCheckerRtsp);
   }
 
   public RtspFromFile(OpenGlView openGlView, ConnectCheckerRtsp connectCheckerRtsp,
-      VideoDecoderInterface videoDecoderInterface, AudioDecoderInterface audioDecoderInterface) {
+                      VideoDecoderInterface videoDecoderInterface, AudioDecoderInterface audioDecoderInterface) {
     super(openGlView, videoDecoderInterface, audioDecoderInterface);
     rtspClient = new RtspClient(connectCheckerRtsp);
   }
 
   public RtspFromFile(LightOpenGlView lightOpenGlView, ConnectCheckerRtsp connectCheckerRtsp,
-      VideoDecoderInterface videoDecoderInterface, AudioDecoderInterface audioDecoderInterface) {
+                      VideoDecoderInterface videoDecoderInterface, AudioDecoderInterface audioDecoderInterface) {
     super(lightOpenGlView, videoDecoderInterface, audioDecoderInterface);
     rtspClient = new RtspClient(connectCheckerRtsp);
   }
@@ -130,7 +114,7 @@ public class RtspFromFile extends FromFileBase {
 
   public void setVideoCodec(VideoCodec videoCodec) {
     recordController.setVideoMime(
-        videoCodec == VideoCodec.H265 ? CodecUtil.H265_MIME : CodecUtil.H264_MIME);
+            videoCodec == VideoCodec.H265 ? CodecUtil.H265_MIME : CodecUtil.H264_MIME);
     videoEncoder.setType(videoCodec == VideoCodec.H265 ? CodecUtil.H265_MIME : CodecUtil.H264_MIME);
   }
 
@@ -193,11 +177,6 @@ public class RtspFromFile extends FromFileBase {
   @Override
   public void setLogs(boolean enable) {
     rtspClient.setLogs(enable);
-  }
-
-  @Override
-  public void setCheckServerAlive(boolean enable) {
-    rtspClient.setCheckServerAlive(enable);
   }
 }
 

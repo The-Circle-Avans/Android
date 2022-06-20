@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtmp.rtmp.message
 
 import com.pedro.rtmp.rtmp.chunk.ChunkType
@@ -35,15 +19,15 @@ class RtmpHeader(var basicHeader: BasicHeader) {
 
   companion object {
 
-    private const val TAG = "RtmpHeader"
+    private val TAG = "RtmpHeader"
 
     /**
      * Check ChunkType class to know header structure
      */
     @Throws(IOException::class)
     fun readHeader(input: InputStream, commandSessionHistory: CommandSessionHistory,
-      timestamp: Int = 0): RtmpHeader {
-      val basicHeader = BasicHeader.parseBasicHeader(input)
+                   timestamp: Int = 0): RtmpHeader {
+      val basicHeader = BasicHeader.parseBasicHeader(input.read().toByte())
       var timeStamp = timestamp
       var messageLength = 0
       var messageType: MessageType? = null
@@ -118,7 +102,7 @@ class RtmpHeader(var basicHeader: BasicHeader) {
   @Throws(IOException::class)
   fun writeHeader(basicHeader: BasicHeader, output: OutputStream) {
     // Write basic header byte
-    output.write((basicHeader.chunkType.mark.toInt() shl 6) or basicHeader.chunkStreamId)
+    output.write((basicHeader.chunkType.mark.toInt() shl 6) or basicHeader.chunkStreamId.mark.toInt())
     when (basicHeader.chunkType) {
       ChunkType.TYPE_0 -> {
         output.writeUInt24(min(timeStamp, 0xffffff))

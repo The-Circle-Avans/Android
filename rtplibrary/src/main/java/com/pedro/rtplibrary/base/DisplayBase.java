@@ -1,23 +1,8 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.pedro.rtplibrary.base;
 
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.display.VirtualDisplay;
 import android.media.AudioAttributes;
 import android.media.AudioPlaybackCaptureConfiguration;
 import android.media.MediaCodec;
@@ -44,10 +29,8 @@ import com.pedro.encoder.utils.CodecUtil;
 import com.pedro.encoder.video.FormatVideoEncoder;
 import com.pedro.encoder.video.GetVideoData;
 import com.pedro.encoder.video.VideoEncoder;
-import com.pedro.rtplibrary.base.recording.BaseRecordController;
-import com.pedro.rtplibrary.base.recording.RecordController;
 import com.pedro.rtplibrary.util.FpsListener;
-import com.pedro.rtplibrary.util.AndroidMuxerRecordController;
+import com.pedro.rtplibrary.util.RecordController;
 import com.pedro.rtplibrary.view.GlInterface;
 import com.pedro.rtplibrary.view.OffScreenGlThread;
 
@@ -80,7 +63,7 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
   private int dpi = 320;
   private int resultCode = -1;
   private Intent data;
-  protected BaseRecordController recordController;
+  protected RecordController recordController;
   private final FpsListener fpsListener = new FpsListener();
   private boolean audioInitialized = false;
 
@@ -90,13 +73,13 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
       glInterface.init();
     }
     mediaProjectionManager =
-        ((MediaProjectionManager) context.getSystemService(MEDIA_PROJECTION_SERVICE));
+            ((MediaProjectionManager) context.getSystemService(MEDIA_PROJECTION_SERVICE));
     this.surfaceView = null;
     videoEncoder = new VideoEncoder(this);
     audioEncoder = new AudioEncoder(this);
     //Necessary use same thread to read input buffer and encode it with internal audio or audio is choppy.
     setMicrophoneMode(MicrophoneMode.SYNC);
-    recordController = new AndroidMuxerRecordController();
+    recordController = new RecordController();
   }
 
   /**
@@ -158,11 +141,11 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
    * doesn't support any configuration seated or your device hasn't a H264 encoder).
    */
   public boolean prepareVideo(int width, int height, int fps, int bitrate, int rotation, int dpi,
-      int avcProfile, int avcProfileLevel, int iFrameInterval) {
+                              int avcProfile, int avcProfileLevel, int iFrameInterval) {
     this.dpi = dpi;
     boolean result =
-        videoEncoder.prepareVideoEncoder(width, height, fps, bitrate, rotation, iFrameInterval,
-            FormatVideoEncoder.SURFACE, avcProfile, avcProfileLevel);
+            videoEncoder.prepareVideoEncoder(width, height, fps, bitrate, rotation, iFrameInterval,
+                    FormatVideoEncoder.SURFACE, avcProfile, avcProfileLevel);
     if (glInterface != null) {
       if (rotation == 90 || rotation == 270) {
         glInterface.setEncoderSize(videoEncoder.getHeight(), videoEncoder.getWidth());
@@ -196,20 +179,20 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
    * doesn't support any configuration seated or your device hasn't a AAC encoder).
    */
   public boolean prepareAudio(int audioSource, int bitrate, int sampleRate, boolean isStereo, boolean echoCanceler,
-      boolean noiseSuppressor) {
+                              boolean noiseSuppressor) {
     if (!microphoneManager.createMicrophone(audioSource, sampleRate, isStereo, echoCanceler, noiseSuppressor)) {
       return false;
     }
     prepareAudioRtp(isStereo, sampleRate);
     audioInitialized = audioEncoder.prepareAudioEncoder(bitrate, sampleRate, isStereo,
-        microphoneManager.getMaxInputSize());
+            microphoneManager.getMaxInputSize());
     return audioInitialized;
   }
 
   public boolean prepareAudio(int bitrate, int sampleRate, boolean isStereo, boolean echoCanceler,
-      boolean noiseSuppressor) {
+                              boolean noiseSuppressor) {
     return prepareAudio(MediaRecorder.AudioSource.DEFAULT, bitrate, sampleRate, isStereo, echoCanceler,
-        noiseSuppressor);
+            noiseSuppressor);
   }
 
   public boolean prepareAudio(int bitrate, int sampleRate, boolean isStereo) {
@@ -227,24 +210,24 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
    */
   @RequiresApi(api = Build.VERSION_CODES.Q)
   public boolean prepareInternalAudio(int bitrate, int sampleRate, boolean isStereo,
-      boolean echoCanceler, boolean noiseSuppressor) {
+                                      boolean echoCanceler, boolean noiseSuppressor) {
     if (mediaProjection == null) {
       mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data);
     }
 
     AudioPlaybackCaptureConfiguration config =
-        new AudioPlaybackCaptureConfiguration.Builder(mediaProjection).addMatchingUsage(
-            AudioAttributes.USAGE_MEDIA)
-            .addMatchingUsage(AudioAttributes.USAGE_GAME)
-            .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
-            .build();
+            new AudioPlaybackCaptureConfiguration.Builder(mediaProjection).addMatchingUsage(
+                            AudioAttributes.USAGE_MEDIA)
+                    .addMatchingUsage(AudioAttributes.USAGE_GAME)
+                    .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
+                    .build();
     if (!microphoneManager.createInternalMicrophone(config, sampleRate, isStereo, echoCanceler,
-        noiseSuppressor)) {
+            noiseSuppressor)) {
       return false;
     }
     prepareAudioRtp(isStereo, sampleRate);
     audioInitialized = audioEncoder.prepareAudioEncoder(bitrate, sampleRate, isStereo,
-        microphoneManager.getMaxInputSize());
+            microphoneManager.getMaxInputSize());
     return audioInitialized;
   }
 
@@ -298,7 +281,7 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
    * @throws IOException If initialized before a stream.
    */
   public void startRecord(@NonNull String path, @Nullable RecordController.Listener listener)
-      throws IOException {
+          throws IOException {
     recordController.startRecord(path, listener);
     if (!streaming) {
       startEncoders(resultCode, data);
@@ -319,7 +302,7 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
    */
   @RequiresApi(api = Build.VERSION_CODES.O)
   public void startRecord(@NonNull final FileDescriptor fd,
-      @Nullable RecordController.Listener listener) throws IOException {
+                          @Nullable RecordController.Listener listener) throws IOException {
     recordController.startRecord(fd, listener);
     if (!streaming) {
       startEncoders(resultCode, data);
@@ -390,12 +373,12 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
       glInterface.addMediaCodecSurface(videoEncoder.getInputSurface());
     }
     Surface surface =
-        (glInterface != null) ? glInterface.getSurface() : videoEncoder.getInputSurface();
+            (glInterface != null) ? glInterface.getSurface() : videoEncoder.getInputSurface();
     if (mediaProjection == null) {
       mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data);
     }
     if (glInterface != null && videoEncoder.getRotation() == 90
-        || videoEncoder.getRotation() == 270) {
+            || videoEncoder.getRotation() == 270) {
       mediaProjection.createVirtualDisplay("Stream Display", videoEncoder.getHeight(),
               videoEncoder.getWidth(), dpi, 0, surface, null, null);
     } else {
@@ -405,10 +388,8 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
     if (audioInitialized) microphoneManager.start();
   }
 
-  public void requestKeyFrame() {
-    if (videoEncoder.isRunning()) {
-      videoEncoder.requestKeyframe();
-    }
+  protected void requestKeyFrame() {
+    videoEncoder.requestKeyframe();
   }
 
   protected abstract void stopStreamRtp();
@@ -493,28 +474,21 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
   }
 
   /**
-   * Set a custom size of audio buffer input.
-   * If you set 0 or less you can disable it to use library default value.
-   * Must be called before of prepareAudio method.
-   *
-   * @param size in bytes. Recommended multiple of 1024 (2048, 4096, 8196, etc)
-   */
-  public void setAudioMaxInputSize(int size) {
-    microphoneManager.setMaxInputSize(size);
-  }
-
-  /**
    * Mute microphone, can be called before, while and after stream.
    */
   public void disableAudio() {
-    microphoneManager.mute();
+    if (audioInitialized) {
+      microphoneManager.mute();
+    }
   }
 
   /**
    * Enable a muted microphone, can be called before, while and after stream.
    */
   public void enableAudio() {
-    microphoneManager.unMute();
+    if (audioInitialized) {
+      microphoneManager.unMute();
+    }
   }
 
   /**
@@ -630,12 +604,6 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
     recordController.setAudioFormat(mediaFormat);
   }
 
-  public void setRecordController(BaseRecordController recordController) {
-    if (!isRecording()) this.recordController = recordController;
-  }
-
   public abstract void setLogs(boolean enable);
-
-  public abstract void setCheckServerAlive(boolean enable);
 }
 
