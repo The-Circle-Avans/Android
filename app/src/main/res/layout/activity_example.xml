@@ -7,39 +7,71 @@
     android:layout_height="match_parent">
 
   <SurfaceView
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"
       android:id="@+id/surfaceView"
-      />
-
-  <EditText
-      android:textColor="@color/appColor"
-      android:textColorHint="@color/appColor"
-      android:inputType="textUri"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:gravity="center"
-      android:layout_margin="20dp"
-      android:id="@+id/et_rtp_url"
-      app:layout_constraintTop_toTopOf="parent"
-      />
-
-  <Button
-      android:id="@+id/b_start_stop"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginBottom="24dp"
-      android:text="@string/start_button"
-      app:layout_constraintBottom_toBottomOf="parent"
-      tools:layout_editor_absoluteX="67dp" />
-
-  <Button
-      android:id="@+id/switch_camera"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginBottom="24dp"
-      android:text="@string/switch_camera_button"
+      android:layout_width="0dp"
+      android:layout_height="0dp"
       app:layout_constraintBottom_toBottomOf="parent"
       app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintStart_toEndOf="@id/b_start_stop" />
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent" />
+
+  <EditText
+      android:id="@+id/et_rtp_url"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_margin="20dp"
+      android:layout_marginStart="20dp"
+      android:layout_marginLeft="20dp"
+      android:layout_marginEnd="20dp"
+      android:layout_marginRight="20dp"
+      android:gravity="center"
+      android:inputType="textUri"
+      android:textColor="@color/appColor"
+      android:textColorHint="@color/appColor"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent" />
+
+  <LinearLayout
+      android:id="@+id/linearLayout"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="632dp"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintHorizontal_bias="0.0"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="@+id/surfaceView">
+
+
+    <Button
+        android:id="@+id/b_start_stop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/start_button"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"/>
+
+    <Button
+        android:id="@+id/switch_camera"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/switch_camera_button" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"/>
+
+    <Button
+        android:id="@+id/button2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Chat"/>
+
+  </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
