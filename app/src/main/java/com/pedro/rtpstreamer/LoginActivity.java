@@ -28,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
                 SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.PREFS_NAME, 0);
                 SharedPreferences.Editor editor = sharedPreferences.edit();
 
-                editor.putBoolean("hasLoggedId", true);
+                editor.putBoolean("hasLoggedIn", true);
                 editor.commit();
 
                 startActivity(new Intent(LoginActivity.this, ExampleRtmpActivity.class));

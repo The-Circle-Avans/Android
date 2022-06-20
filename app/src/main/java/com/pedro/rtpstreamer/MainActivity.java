@@ -34,6 +34,7 @@ import com.pedro.rtpstreamer.defaultexample.ExampleRtmpActivity;
 
 public class MainActivity extends AppCompatActivity  {
   private static int SPLASH_TIME_OUT=3000;
+  private static String TAG="MainActivity";
 
   private final String[] PERMISSIONS = {
       Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA,
@@ -56,6 +57,7 @@ public class MainActivity extends AppCompatActivity  {
       public void run() {
         SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.PREFS_NAME, 0);
         boolean hasLoggedIn = sharedPreferences.getBoolean("hasLoggedIn", false);
+        Log.i(TAG, String.valueOf(hasLoggedIn));
 
         Intent intent;
         if (hasLoggedIn) {
