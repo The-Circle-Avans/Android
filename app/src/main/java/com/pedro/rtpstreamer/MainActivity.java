@@ -28,7 +28,6 @@ import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
 
 import com.pedro.rtpstreamer.defaultexample.ExampleRtmpActivity;
 
@@ -72,9 +71,8 @@ public class MainActivity extends AppCompatActivity  {
       }
     }, SPLASH_TIME_OUT);
 
-    Fragment chatFragment = new ChatFragment();
 
-    // getSupportFragmentManager().beginTransaction().replace()
+
   }
 
 
