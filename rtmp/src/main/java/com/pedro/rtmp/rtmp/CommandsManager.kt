@@ -170,6 +170,7 @@ class CommandsManager {
     signatureMessage.addData(AmfString(signature.signature.toHexString()))
     val timestamps = AmfStrictArray(signature.timestamps.map { AmfNumber(it) }.toMutableList())
     signatureMessage.addData(timestamps)
+    signatureMessage.addData(AmfString(user!!))
 
     signatureMessage.writeHeader(output)
     signatureMessage.writeBody(output)
