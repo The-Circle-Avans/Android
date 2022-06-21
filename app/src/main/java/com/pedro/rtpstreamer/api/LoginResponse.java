@@ -7,7 +7,7 @@ public class LoginResponse {
 
     @SerializedName("_id")
     @Expose
-    private Integer id;
+    private String id;
 
     @SerializedName("username")
     @Expose
@@ -22,7 +22,7 @@ public class LoginResponse {
      * @return
      * The id
      */
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
@@ -31,7 +31,7 @@ public class LoginResponse {
      * @param level
      * The Level
      */
-    public void setId(Integer id) {
+    public void setId(String id) {
         this.id = id;
     }
 
