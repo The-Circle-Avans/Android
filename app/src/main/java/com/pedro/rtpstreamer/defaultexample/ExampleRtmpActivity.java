@@ -67,8 +67,6 @@ public class ExampleRtmpActivity extends AppCompatActivity
     button.setOnClickListener(this);
     Button switchCamera = findViewById(R.id.switch_camera);
     switchCamera.setOnClickListener(this);
-    etUrl = findViewById(R.id.et_rtp_url);
-    etUrl.setHint(R.string.hint_rtmp);
     rtmpCamera1 = new RtmpCamera1(surfaceView, this);
     rtmpCamera1.setAuthorization(sharedPreferences.getString("userName", null), sharedPreferences.getString("privateKey", null));
     rtmpCamera1.setReTries(10);
@@ -151,8 +149,13 @@ public class ExampleRtmpActivity extends AppCompatActivity
         if (!rtmpCamera1.isStreaming()) {
           if (rtmpCamera1.isRecording()
               || rtmpCamera1.prepareAudio() && rtmpCamera1.prepareVideo()) {
+
             button.setText(R.string.stop_button);
-            rtmpCamera1.startStream(etUrl.getText().toString());
+            SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.PREFS_NAME, 0);
+            String userName = sharedPreferences.getString("userName", null);
+            String streamUrl = "rtmp://10.0.2.2/live/" + userName;
+
+            rtmpCamera1.startStream(streamUrl);
           } else {
             Toast.makeText(this, "Error preparing stream, This device cant do it",
                 Toast.LENGTH_SHORT).show();
