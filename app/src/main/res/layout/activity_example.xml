@@ -74,10 +74,4 @@
         android:text="Show Chat"/>
 
   </LinearLayout>
-
-  <fragment
-      android:id = "@+id/activity_chat"
-      android:name = "com.pedro.rtpstreamer.ChatActivity"
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

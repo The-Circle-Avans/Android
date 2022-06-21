@@ -19,8 +19,6 @@ package com.pedro.rtpstreamer.defaultexample;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
-
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -35,6 +33,10 @@ import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.utils.PathUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * More documentation see:
@@ -55,7 +57,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-    setContentView(R.layout.activity_video);
+    setContentView(R.layout.activity_example);
     folder = PathUtils.getRecordPath();
     SurfaceView surfaceView = findViewById(R.id.surfaceView);
     button = findViewById(R.id.b_start_stop);

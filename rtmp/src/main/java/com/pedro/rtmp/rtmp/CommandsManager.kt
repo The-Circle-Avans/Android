@@ -1,9 +1,9 @@
 package com.pedro.rtmp.rtmp
 
-import android.content.SharedPreferences
 import android.util.Log
 import com.pedro.rtmp.amf.v0.*
 import com.pedro.rtmp.flv.FlvPacket
+import com.pedro.rtmp.flv.FlvType
 import com.pedro.rtmp.flv.SignaturePacket
 import com.pedro.rtmp.rtmp.chunk.ChunkStreamId
 import com.pedro.rtmp.rtmp.chunk.ChunkType
@@ -168,7 +168,6 @@ class CommandsManager {
     val signatureMessage = DataAmf0(name, getCurrentTimestamp(), streamId)
     signatureMessage.addData(AmfString(signature.type.toString()))
     signatureMessage.addData(AmfString(signature.signature.toHexString()))
-    signatureMessage.addData(AmfString(user!!))
     val timestamps = AmfStrictArray(signature.timestamps.map { AmfNumber(it) }.toMutableList())
     signatureMessage.addData(timestamps)
 
