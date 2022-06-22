@@ -301,7 +301,6 @@ class RtmpSender(private val connectCheckerRtmp: ConnectCheckerRtmp, private val
           throw Exception()
         }
 
-
         // Concatenate all ByteArrays into one single instance
         val byteArray: ByteArray = byteArrayListToByteArray(byteArrayList)
 
@@ -333,23 +332,7 @@ class RtmpSender(private val connectCheckerRtmp: ConnectCheckerRtmp, private val
     return byteArray
   }
 
-  private val PRIVATE_KEY: String = "MIICWgIBAAKBgHcyTFikOhMTDuiisl6kwRpSBmrEstw1+gYboOQtugugpYVHcSwI" +
-          "UM9lFfiGN5zn6++bU8DDQScnIU4D7Zg6S3/h1dyqyHjIzSD9fvCcbaJlFC32mrNO" +
-          "SPhbF+irpHaIbS4e2V8qd6RdWerqJaXM7OsFEKydGzDW7G8lr5jIrAddAgMBAAEC" +
-          "gYADPqNFZnMOQd6OBp/EY8e95621ClW0GOQNdoMSswv1dRIMZr117WQFwUKv2Td6" +
-          "VfXeN+Q3wxjq7+3AKes10aBseQmXB68iJ7e78LjsaU4f02j5WQOPTQRy2f4H/Cgm" +
-          "dZplSuyuWUQUL0UM2CH4bhXPKLDXkfPhuLwPxl7tD83SAQJBANcqZg6rQAM22DVI" +
-          "AW0kUJjUDCrHq0m8sIR2dSEfqoxVegDSdXZ5/hdgkS5Ly61p4BwfQ1fbrajkjFZi" +
-          "oZQXftECQQCN0VZIkzMyX83h65QsoGdjq1wO2d/BbU3NUfTy9zg3qjrQ1DgPeyU4" +
-          "BWNSaB7+eRsyaelxhij5iq7NMOvoZlrNAkBi/hbGWPOyhuEiYmaFmFeceLLAW+zq" +
-          "l+1+hCGPg8orlofzKODyCV5l0v/4lNa4iiWZyqhpG6DiO4R1mhtMzyKBAkAWk4m5" +
-          "2f0fetLqsTcQd6Sd4EyybIrLXxwwoGhvOV3wtp/QWMhn5oHBTlJGbx7oAd2LhALO" +
-          "uL3TI/m53pzfjVPNAkBZfx4rEHrucEcfgoQjU5PDUDkATBHLa7juPc4hEzViHcRi" +
-          "1oz0hdGXB1kSldcK9ejqbMuNvm905jFkaauqYwv+"
-  private val PUBLIC_KEY: String = "MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgHcyTFikOhMTDuiisl6kwRpSBmrE" +
-          "stw1+gYboOQtugugpYVHcSwIUM9lFfiGN5zn6++bU8DDQScnIU4D7Zg6S3/h1dyq" +
-          "yHjIzSD9fvCcbaJlFC32mrNOSPhbF+irpHaIbS4e2V8qd6RdWerqJaXM7OsFEKyd" +
-          "GzDW7G8lr5jIrAddAgMBAAE="
+  private val PRIVATE_KEY: String? = commandsManager.password;
 
   private fun signByteArray(data: ByteArray): ByteArray {
     val privateKeyBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

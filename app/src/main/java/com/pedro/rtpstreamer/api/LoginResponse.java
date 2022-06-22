@@ -17,6 +17,10 @@ public class LoginResponse {
     @Expose
     private String publicKey;
 
+    @SerializedName("thruyou_public_key")
+    @Expose
+    private String truYouPublicKey;
+
     /**
      *
      * @return
@@ -71,7 +75,17 @@ public class LoginResponse {
         this.publicKey = publicKey;
     }
 
+    /**
+     *
+     * @return
+     * TruYou's public key
+     */
+    public String getTruYouPublicKey() { return truYouPublicKey; }
 
-
-
+    /**
+     *
+     * @param truYouPublicKey
+     * The Username
+     */
+    public void setTruYouPublicKey(String truYouPublicKey) { this.truYouPublicKey = truYouPublicKey; }
 }
