@@ -114,11 +114,13 @@ public class LoginActivity extends AppCompatActivity {
 //
 //                        // Create a verifier and initialize it with TruYou's signature
 //                        Signature verifier = Signature.getInstance("SHA256withRSA");
+//
+//                        // Add the public key and data to be verified to the verifier
 //                        verifier.initVerify(truYouPublicKey);
-//                        verifier.update(hash);
+//                        verifier.update(truYouSigB);
 //
 //                        // Verify the signature with the public key from TruYou
-//                        if (!verifier.verify(truYouSigB))
+//                        if (!verifier.verify(hash))
 //                        {
 //                            Log.i(TAG, "The signature was not from TruYou");
 //                            throw new InvalidKeyException();

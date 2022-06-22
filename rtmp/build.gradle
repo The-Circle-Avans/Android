@@ -43,4 +43,5 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
   testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
   testImplementation 'junit:junit:4.13.2'
+  implementation 'org.bouncycastle:bcpkix-jdk15on:1.56'
 }

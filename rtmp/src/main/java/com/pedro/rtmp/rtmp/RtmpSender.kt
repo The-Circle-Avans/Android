@@ -15,10 +15,14 @@ import com.pedro.rtmp.flv.video.ProfileIop
 import com.pedro.rtmp.flv.video.VideoPacketCallback
 import com.pedro.rtmp.utils.BitrateManager
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
+import org.bouncycastle.openssl.PEMKeyPair
+import org.bouncycastle.openssl.PEMParser
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import java.io.OutputStream
+import java.io.StringReader
 import java.nio.ByteBuffer
 import java.security.*
-import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import java.util.concurrent.*
 
@@ -332,18 +336,26 @@ class RtmpSender(private val connectCheckerRtmp: ConnectCheckerRtmp, private val
     return byteArray
   }
 
-  private val PRIVATE_KEY: String? = commandsManager.password;
-
   private fun signByteArray(data: ByteArray): ByteArray {
-    val privateKeyBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      Base64.getDecoder().decode(PRIVATE_KEY)
-    } else
-    {
-      throw Exception("Build version < 0")
-    }
-    val privateKeySpec = PKCS8EncodedKeySpec(privateKeyBytes)
-    val keyFactory = KeyFactory.getInstance("RSA")
-    val privateKey: PrivateKey = keyFactory.generatePrivate(privateKeySpec)
+
+    val privateKeyPEM: String = commandsManager.password!!;
+    // Generate the private key from a generated keypair
+    val pemParser = PEMParser(StringReader(privateKeyPEM))
+    val convert = JcaPEMKeyConverter()
+    val `object` = pemParser.readObject()
+    val kp = convert.getKeyPair(`object` as PEMKeyPair)
+    val privateKey = kp.private
+
+
+//    val privateKeyBytes: ByteArray = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//      Base64.getDecoder().decode(privKeyStr)
+//    } else
+//    {
+//      throw Exception("Build version < 0")
+//    }
+//    val privateKeySpec = X509EncodedKeySpec(privateKeyBytes)
+//    val keyFactory = KeyFactory.getInstance("RSA")
+//    val privateKey: PrivateKey = keyFactory.generatePrivate(privateKeySpec)
 
     val signature = Signature.getInstance("SHA256withRSA")
     signature.initSign(privateKey)
