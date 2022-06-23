@@ -25,6 +25,7 @@ import org.bouncycastle.jcajce.util.MessageDigestUtils;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.util.io.pem.PemReader;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -118,7 +119,7 @@ public class LoginActivity extends AppCompatActivity {
                     try
                     {
                         // Generate a usable version of TruYou's public key
-                        RSAPublicKey truYouPublicKey = generatePublicKey(publicKeyPEM);
+                        RSAPublicKey truYouPublicKey = generatePublicKey(truYouPublicKeyPEM);
 
                         // Convert the signature to base64
                         byte[] truYouSigBase64 = Base64.decode(truYouSig, 0);
@@ -139,61 +140,58 @@ public class LoginActivity extends AppCompatActivity {
                         byte[] hash = digest.digest();
 
                         String hexStringRequest = String.format("%064x", new BigInteger(1, resultBase64));
-                        System.out.println("Hex -------->" + hexStringRequest);
+                        System.out.println("Hex --------> " + hexStringRequest);
 
                         String hexStringSelf = String.format("%064x", new BigInteger(1, hash));
-                        System.out.println("Hex -------->" + hexStringSelf);
-                    } catch (NoSuchAlgorithmException | InvalidKeySpecException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+                        System.out.println("Hex --------> " + hexStringSelf);
+                    } catch (NoSuchAlgorithmException | InvalidKeySpecException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException | IOException e) {
                         e.printStackTrace();
                     }
 
-                    try {
-                        // Convert TruYou's the RSA public key to a usable key
-                        RSAPublicKey truYouPublicKey = generatePublicKey(truYouPublicKeyPEM);
-
-                        // Convert the signatures' string into a byte array
-                        byte[] truYouSigB = Base64.decode(truYouSig, 0);
-                        byte[] hash = Base64.decode(username + publicKeyPEM, 0);
-
-                        // Create a verifier and initialize it with TruYou's signature
-                        Signature verifier = Signature.getInstance("SHA256withRSA");
-
-                        // Add the public key and data to be verified to the verifier
-                        verifier.initVerify(truYouPublicKey);
-                        verifier.update(hash);
-
-                        // Verify the signature with the public key from TruYou
-                        if (!verifier.verify(truYouSigB))
-                        {
-                            Log.i(TAG, "The signature was not from TruYou");
-                            throw new InvalidKeyException();
-                        }
-
-                        Log.i(TAG, "The signature was from TruYou");
-
-                    } catch (NoSuchAlgorithmException e) {
-                        e.printStackTrace();
-                    } catch (InvalidKeySpecException e) {
-                        e.printStackTrace();
-                    } catch (InvalidKeyException e) {
-                        e.printStackTrace();
-                    } catch (SignatureException e) {
-                        e.printStackTrace();
-                    }
+//                    try {
+//                        // Convert TruYou's the RSA public key to a usable key
+//                        RSAPublicKey truYouPublicKey = generatePublicKey(truYouPublicKeyPEM);
+//
+//                        // Convert the signatures' string into a byte array
+//                        byte[] truYouSigB = Base64.decode(truYouSig, 0);
+//                        byte[] hash = Base64.decode(username + publicKeyPEM, 0);
+//
+//                        // Create a verifier and initialize it with TruYou's signature
+//                        Signature verifier = Signature.getInstance("SHA256withRSA");
+//
+//                        // Add the public key and data to be verified to the verifier
+//                        verifier.initVerify(truYouPublicKey);
+//                        verifier.update(hash);
+//
+//                        // Verify the signature with the public key from TruYou
+//                        if (!verifier.verify(truYouSigB))
+//                        {
+//                            Log.i(TAG, "The signature was not from TruYou");
+//                            throw new InvalidKeyException();
+//                        }
+//
+//                        Log.i(TAG, "The signature was from TruYou");
+//
+//                    } catch (NoSuchAlgorithmException e) {
+//                        e.printStackTrace();
+//                    } catch (InvalidKeySpecException e) {
+//                        e.printStackTrace();
+//                    } catch (InvalidKeyException e) {
+//                        e.printStackTrace();
+//                    } catch (SignatureException e) {
+//                        e.printStackTrace();
+//                    }
 
                     // Create the private and public keys
-                    RSAPublicKey publicKey = null;
+                    PublicKey publicKey = null;
                     PrivateKey privateKey = null;
 
                     // Attempt to generate the actual private and public keys
                     try {
-                        publicKey = generatePublicKey(publicKeyPEM);
-                        privateKey = generatePrivateKey(privateKeyPEM);
-                    } catch (NoSuchAlgorithmException e) {
-                        e.printStackTrace();
-                    } catch (InvalidKeySpecException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
+                        KeyPair kp = generateKeyPair(privateKeyPEM);
+                        privateKey = kp.getPrivate();
+                        publicKey = kp.getPublic();
+                    } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
                         e.printStackTrace();
                     }
 
@@ -253,20 +251,19 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private PrivateKey generatePrivateKey (String privateKeyPEM) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    private KeyPair generateKeyPair (String privateKeyPEM) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
 
         // Generate the private key from a generated keypair
         PEMParser pemParser = new PEMParser(new StringReader(privateKeyPEM));
         JcaPEMKeyConverter convert = new JcaPEMKeyConverter();
         Object object = pemParser.readObject();
         KeyPair kp = convert.getKeyPair((PEMKeyPair) object);
-        PrivateKey privateKey = kp.getPrivate();
 
-        return privateKey;
+        return kp;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private RSAPublicKey generatePublicKey (String publicKeyPEM) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private RSAPublicKey generatePublicKey (String publicKeyPEM) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
         // format the public key
         publicKeyPEM = publicKeyPEM
                 .replace("-----BEGIN PUBLIC KEY-----", "")
