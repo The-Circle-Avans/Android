@@ -19,6 +19,9 @@ import com.pedro.rtpstreamer.api.LoginResponse;
 import com.pedro.rtpstreamer.api.UserService;
 import com.pedro.rtpstreamer.defaultexample.ExampleRtmpActivity;
 
+import org.bouncycastle.jcajce.provider.digest.SHA256;
+import org.bouncycastle.jcajce.provider.digest.SHA512;
+import org.bouncycastle.jcajce.util.MessageDigestUtils;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
@@ -27,10 +30,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -41,8 +46,14 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 import okhttp3.Headers;
 import retrofit2.Call;
@@ -102,41 +113,73 @@ public class LoginActivity extends AppCompatActivity {
                     //TODO Verify TruYou's signature
 
                     // Get the signature from the response's header
-                    String truYouSig = headers.get("x-digitalsignature");
+                    String truYouSig = headers.get("x-hash");
 
-//                    try {
-//                        // Convert TruYou's the RSA public key to a usable key
-//                        RSAPublicKey truYouPublicKey = generatePublicKey(truYouPublicKeyPEM);
-//
-//                        // Convert the signatures' string into a byte array
-//                        byte[] truYouSigB = Base64.decode(truYouSig, 0);
-//                        byte[] hash = Base64.decode(username + publicKeyPEM, 0);
-//
-//                        // Create a verifier and initialize it with TruYou's signature
-//                        Signature verifier = Signature.getInstance("SHA256withRSA");
-//
-//                        // Add the public key and data to be verified to the verifier
-//                        verifier.initVerify(truYouPublicKey);
-//                        verifier.update(truYouSigB);
-//
-//                        // Verify the signature with the public key from TruYou
-//                        if (!verifier.verify(hash))
-//                        {
-//                            Log.i(TAG, "The signature was not from TruYou");
-//                            throw new InvalidKeyException();
-//                        }
-//
-//                        Log.i(TAG, "The signature was from TruYou");
-//
-//                    } catch (NoSuchAlgorithmException e) {
-//                        e.printStackTrace();
-//                    } catch (InvalidKeySpecException e) {
-//                        e.printStackTrace();
-//                    } catch (InvalidKeyException e) {
-//                        e.printStackTrace();
-//                    } catch (SignatureException e) {
-//                        e.printStackTrace();
-//                    }
+                    try
+                    {
+                        // Generate a usable version of TruYou's public key
+                        RSAPublicKey truYouPublicKey = generatePublicKey(publicKeyPEM);
+
+                        // Convert the signature to base64
+                        byte[] truYouSigBase64 = Base64.decode(truYouSig, 0);
+
+                        // Instantiate a cipher and provide it the public key
+                        // Also update the data in the cipher to be the signature in Base64
+                        Cipher cipher = Cipher.getInstance("RSA");
+                        cipher.init(Cipher.DECRYPT_MODE, truYouPublicKey);
+                        cipher.update(truYouSigBase64);
+
+                        // Decrypt the signature
+                        String result = new String(cipher.doFinal());
+                        byte[] resultBase64 = result.getBytes(StandardCharsets.UTF_8);
+
+                        // Create a hash from the required fields
+                        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                        digest.update((username + publicKeyPEM).getBytes(StandardCharsets.UTF_8));
+                        byte[] hash = digest.digest();
+
+                        String hexStringRequest = String.format("%064x", new BigInteger(1, resultBase64));
+                        System.out.println("Hex -------->" + hexStringRequest);
+
+                        String hexStringSelf = String.format("%064x", new BigInteger(1, hash));
+                        System.out.println("Hex -------->" + hexStringSelf);
+                    } catch (NoSuchAlgorithmException | InvalidKeySpecException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        // Convert TruYou's the RSA public key to a usable key
+                        RSAPublicKey truYouPublicKey = generatePublicKey(truYouPublicKeyPEM);
+
+                        // Convert the signatures' string into a byte array
+                        byte[] truYouSigB = Base64.decode(truYouSig, 0);
+                        byte[] hash = Base64.decode(username + publicKeyPEM, 0);
+
+                        // Create a verifier and initialize it with TruYou's signature
+                        Signature verifier = Signature.getInstance("SHA256withRSA");
+
+                        // Add the public key and data to be verified to the verifier
+                        verifier.initVerify(truYouPublicKey);
+                        verifier.update(hash);
+
+                        // Verify the signature with the public key from TruYou
+                        if (!verifier.verify(truYouSigB))
+                        {
+                            Log.i(TAG, "The signature was not from TruYou");
+                            throw new InvalidKeyException();
+                        }
+
+                        Log.i(TAG, "The signature was from TruYou");
+
+                    } catch (NoSuchAlgorithmException e) {
+                        e.printStackTrace();
+                    } catch (InvalidKeySpecException e) {
+                        e.printStackTrace();
+                    } catch (InvalidKeyException e) {
+                        e.printStackTrace();
+                    } catch (SignatureException e) {
+                        e.printStackTrace();
+                    }
 
                     // Create the private and public keys
                     RSAPublicKey publicKey = null;
