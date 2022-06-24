@@ -20,6 +20,8 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -34,11 +36,20 @@ import com.pedro.rtpstreamer.LoginActivity;
 import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.utils.PathUtils;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
+import io.socket.engineio.client.transports.Polling;
+import io.socket.engineio.client.transports.WebSocket;
 
 /**
  * More documentation see:
@@ -54,6 +65,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
 
   private String currentDateAndTime = "";
   private File folder;
+  private String TAG = "RTMPACTivitY";
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -154,7 +166,8 @@ public class ExampleRtmpActivity extends AppCompatActivity
             SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.PREFS_NAME, 0);
             String userName = sharedPreferences.getString("userName", null);
             String streamUrl = "rtmp://10.0.2.2/live/" + userName;
-
+            Log.i(TAG, "establishing connection booss");
+            establishSocketConnection();
             rtmpCamera1.startStream(streamUrl);
           } else {
             Toast.makeText(this, "Error preparing stream, This device cant do it",
@@ -175,6 +188,59 @@ public class ExampleRtmpActivity extends AppCompatActivity
       default:
         break;
     }
+  }
+
+  private void establishSocketConnection() {
+//    SocketInstance socketInstance = new SocketInstance();
+//    socketInstance.setSocket();
+//    socketInstance.createConnection();
+//    Socket mSocket = socketInstance.getSocket();
+//    if (mSocket.connected()){
+//      Log.i(TAG, "Chat is connected");
+//      Toast.makeText(ExampleRtmpActivity.this, "Chat is connected",Toast.LENGTH_LONG).show();
+//    }
+    URI uri = URI.create("ws://10.0.2.2:3500");
+    IO.Options options = IO.Options.builder()
+            // IO factory options
+            .setForceNew(true)
+            .setMultiplex(true)
+
+            // low-level engine options
+            .setTransports(new String[] { WebSocket.NAME })
+            .setUpgrade(true)
+            .setRememberUpgrade(false)
+            .setPath("/socket.io/")
+            .setQuery(null)
+            .setExtraHeaders(null)
+
+            // Manager options
+            .setReconnection(true)
+            .setReconnectionAttempts(Integer.MAX_VALUE)
+            .setReconnectionDelay(1_000)
+            .setReconnectionDelayMax(5_000)
+            .setRandomizationFactor(0.5)
+            .setTimeout(20_000)
+
+            // Socket options
+            .setAuth(null)
+            .build();
+    Socket mSocket = IO.socket(uri, options);
+    mSocket.connect();
+    Log.i(TAG, "we zijn er voorbij?");
+
+    if (mSocket.connected()) {
+      Log.i(TAG, "connected?");
+    }
+
+    mSocket.on("message", new Emitter.Listener() {
+      @Override
+      public void call(Object... args) {
+        JSONObject data = (JSONObject)args[0];
+//        Log.i(TAG, data.toString());
+        Log.i(TAG, "data komt binnen?");
+        Toast.makeText(ExampleRtmpActivity.this, data.toString(), Toast.LENGTH_SHORT).show();
+      }
+    });
   }
 
   @Override
