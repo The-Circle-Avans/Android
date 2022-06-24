@@ -36,6 +36,7 @@ import com.pedro.rtpstreamer.LoginActivity;
 import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.utils.PathUtils;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -191,14 +192,6 @@ public class ExampleRtmpActivity extends AppCompatActivity
   }
 
   private void establishSocketConnection() {
-//    SocketInstance socketInstance = new SocketInstance();
-//    socketInstance.setSocket();
-//    socketInstance.createConnection();
-//    Socket mSocket = socketInstance.getSocket();
-//    if (mSocket.connected()){
-//      Log.i(TAG, "Chat is connected");
-//      Toast.makeText(ExampleRtmpActivity.this, "Chat is connected",Toast.LENGTH_LONG).show();
-//    }
     URI uri = URI.create("ws://10.0.2.2:3500");
     IO.Options options = IO.Options.builder()
             // IO factory options
@@ -225,21 +218,18 @@ public class ExampleRtmpActivity extends AppCompatActivity
             .setAuth(null)
             .build();
     Socket mSocket = IO.socket(uri, options);
+    Log.i(TAG, "Socket ID: " + mSocket.id());
     mSocket.connect();
     Log.i(TAG, "we zijn er voorbij?");
 
-    if (mSocket.connected()) {
-      Log.i(TAG, "connected?");
-    }
+    mSocket.on(Socket.EVENT_CONNECT, (args -> {
+      Log.i(TAG, "we zijn connected fr fr");
+      Log.i(TAG, "Socket ID: " + mSocket.id());
 
-    mSocket.on("message", new Emitter.Listener() {
-      @Override
-      public void call(Object... args) {
-        JSONObject data = (JSONObject)args[0];
-//        Log.i(TAG, data.toString());
-        Log.i(TAG, "data komt binnen?");
-        Toast.makeText(ExampleRtmpActivity.this, data.toString(), Toast.LENGTH_SHORT).show();
-      }
+    })).on("message", args -> {
+      JSONArray obj = (JSONArray) args[0];
+      String message = obj.toString();
+      Log.i(TAG, message);
     });
   }
 
