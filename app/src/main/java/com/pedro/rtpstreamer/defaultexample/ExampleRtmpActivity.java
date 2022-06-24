@@ -37,6 +37,7 @@ import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.utils.PathUtils;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -168,7 +169,11 @@ public class ExampleRtmpActivity extends AppCompatActivity
             String userName = sharedPreferences.getString("userName", null);
             String streamUrl = "rtmp://10.0.2.2/live/" + userName;
             Log.i(TAG, "establishing connection booss");
-            establishSocketConnection();
+            try {
+              establishSocketConnection();
+            } catch (JSONException e) {
+              e.printStackTrace();
+            }
             rtmpCamera1.startStream(streamUrl);
           } else {
             Toast.makeText(this, "Error preparing stream, This device cant do it",
@@ -191,7 +196,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
     }
   }
 
-  private void establishSocketConnection() {
+  private void establishSocketConnection() throws JSONException {
     URI uri = URI.create("ws://10.0.2.2:3500");
     IO.Options options = IO.Options.builder()
             // IO factory options
@@ -222,15 +227,25 @@ public class ExampleRtmpActivity extends AppCompatActivity
     mSocket.connect();
     Log.i(TAG, "we zijn er voorbij?");
 
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put("msg", "hi");
+    jsonObject.put("username", "Boris");
+    jsonObject.put("stream", "Boris");
+
+
     mSocket.on(Socket.EVENT_CONNECT, (args -> {
       Log.i(TAG, "we zijn connected fr fr");
       Log.i(TAG, "Socket ID: " + mSocket.id());
 
-    })).on("message", args -> {
-      JSONArray obj = (JSONArray) args[0];
-      String message = obj.toString();
-      Log.i(TAG, message);
-    });
+    })).emit("joinStream", jsonObject)
+            .on("message", new Emitter.Listener() {
+              @Override
+              public void call(Object... args) {
+                JSONObject obj = (JSONObject) args[0];
+                String message = obj.toString();
+                Log.i(TAG, "message: " + message);
+              }
+            });
   }
 
   @Override
