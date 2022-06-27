@@ -19,6 +19,8 @@ package com.pedro.rtpstreamer.defaultexample;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -40,7 +42,11 @@ import com.pedro.rtpstreamer.LoginActivity;
 import com.pedro.rtpstreamer.MainActivity;
 import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.RecyclerAdapter;
+import com.pedro.rtpstreamer.api.ApiClient;
+import com.pedro.rtpstreamer.api.LoginResponse;
+import com.pedro.rtpstreamer.api.UserService;
 import com.pedro.rtpstreamer.domain.ChatMessage;
+import com.pedro.rtpstreamer.utils.LoginManager;
 import com.pedro.rtpstreamer.utils.PathUtils;
 
 import org.json.JSONArray;
@@ -61,6 +67,11 @@ import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import io.socket.engineio.client.transports.Polling;
 import io.socket.engineio.client.transports.WebSocket;
+import okhttp3.Headers;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 /**
  * More documentation see:
@@ -75,6 +86,8 @@ public class ExampleRtmpActivity extends AppCompatActivity
   private String currentDateAndTime = "";
   private File folder;
   private String TAG = "RTMPACTivitY";
+  private LoginManager lm = new LoginManager();
+  private String PEMKeyChat = "";
 
   RecyclerAdapter mAdapter;
   RecyclerView mRecyclerview;
@@ -254,31 +267,74 @@ public class ExampleRtmpActivity extends AppCompatActivity
 
     })).emit("joinStream", jsonObject)
             .on("message", new Emitter.Listener() {
+              @RequiresApi(api = Build.VERSION_CODES.KITKAT)
               @Override
               public void call(Object... args) {
                 JSONObject obj = (JSONObject) args[0];
-                JSONObject deeper = null;
+
                 try {
+                  String sig = obj.getString("signature");
+
+                  JSONObject deeper = null;
                   deeper = obj.getJSONObject("message");
                   String chat = deeper.getString("text");
                   String sender = deeper.getString("username");
                   Log.i(TAG, chat);
 
+                  if (PEMKeyChat.equals(""))
+                  {
+                    Retrofit retrofit = ApiClient.getRetrofitInstance();
+                    final UserService api = retrofit.create(UserService.class);
 
-                  runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                      if (!chat.equals("Welcome to the chat!")) {
-                        chats.add(new ChatMessage(sender, chat));
-                        mAdapter.notifyDataSetChanged();
+                    Call<LoginResponse> call = api.getUserByName("chat-backend");
+                    call.enqueue(new Callback<LoginResponse>() {
+                      @Override
+                      public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
+
+                        Headers headers = response.headers();
+                        response.body();
+
+                        String username = response.body().getUsername();
+                        String PEMuserPublicKey = response.body().getPublicKey();
+                        String PEMserverPublicKey = response.body().getTruYouPublicKey();
+
+                        String truYouSig = headers.get("x-hash");
+
+                        if (lm.checkSignature(username + PEMuserPublicKey, truYouSig, PEMserverPublicKey))
+                        {
+                          PEMKeyChat = PEMuserPublicKey;
+                        }
+                        else
+                        {
+                          Toast.makeText(getApplicationContext(), "Unable to authenticate the server!", Toast.LENGTH_SHORT).show();
+                          Log.i(TAG, "Unable to authenticate the server!");
+                          return;
+                        }
                       }
-                    }
-                  });
 
+                      @Override
+                      public void onFailure(Call<LoginResponse> call, Throwable t) {
+                        Toast.makeText(getApplicationContext(), "Unable to authenticate the server!", Toast.LENGTH_SHORT).show();
+                        Log.i(TAG, "Unable to authenticate the server!");
+                      }
+                    });
+                  }
+
+                  if (lm.checkSignature(chat, sig, PEMKeyChat))
+                  {
+                    runOnUiThread(new Runnable() {
+                      @Override
+                      public void run() {
+                        if (!chat.equals("Welcome to the chat!")) {
+                          chats.add(new ChatMessage(sender, chat));
+                          mAdapter.notifyDataSetChanged();
+                        }
+                      }
+                    });
+                  }
                 } catch (JSONException e) {
                   e.printStackTrace();
                 }
-
               }
             });
   }

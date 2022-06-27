@@ -102,7 +102,6 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
                 if (response.isSuccessful()) {
-                    boolean verified = false;
 
                     // Read the response from the API
                     Headers headers = response.headers();
@@ -119,8 +118,6 @@ public class LoginActivity extends AppCompatActivity {
                     LoginManager lm = new LoginManager();
 
                     try {
-
-
                         // Check if there is a matching hash
                         if (lm.checkSignature(username + PEMuserPublicKey, truYouSig, PEMserverPublicKey))
                         {
