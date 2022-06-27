@@ -9,14 +9,16 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.pedro.rtpstreamer.domain.ChatMessage;
+
 import java.util.ArrayList;
 
 public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHolder> {
 
-    private ArrayList<String> mData;
+    private ArrayList<ChatMessage> mData;
     private LayoutInflater mInflater;
 
-    public RecyclerAdapter(Context context, ArrayList<String> data) {
+    public RecyclerAdapter(Context context, ArrayList<ChatMessage> data) {
         this.mInflater = LayoutInflater.from(context);
         this.mData = data;
     }
@@ -30,8 +32,18 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerAdapter.ViewHolder holder, int position) {
-        String chat = mData.get(position);
-        holder.textView.setText(chat);
+        ChatMessage chat = mData.get(position);
+        StringBuilder build = new StringBuilder();
+
+        if (chat.getUserName().length() != 0) {
+            build.append(chat.getUserName());
+            build.append(": ");
+            build.append(chat.getChatMessage());
+        } else {
+            build.append(chat.getChatMessage());
+        }
+
+        holder.textView.setText(build);
     }
 
     @Override

@@ -40,6 +40,7 @@ import com.pedro.rtpstreamer.LoginActivity;
 import com.pedro.rtpstreamer.MainActivity;
 import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.RecyclerAdapter;
+import com.pedro.rtpstreamer.domain.ChatMessage;
 import com.pedro.rtpstreamer.utils.PathUtils;
 
 import org.json.JSONArray;
@@ -77,7 +78,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
 
   RecyclerAdapter mAdapter;
   RecyclerView mRecyclerview;
-  ArrayList<String> chats = new ArrayList<>();
+  ArrayList<ChatMessage> chats = new ArrayList<>();
 
 
   @Override
@@ -260,14 +261,17 @@ public class ExampleRtmpActivity extends AppCompatActivity
                 try {
                   deeper = obj.getJSONObject("message");
                   String chat = deeper.getString("text");
+                  String sender = deeper.getString("username");
                   Log.i(TAG, chat);
 
 
                   runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                      chats.add(chat);
-                      mAdapter.notifyDataSetChanged();
+                      if (!chat.equals("Welcome to the chat!")) {
+                        chats.add(new ChatMessage(sender, chat));
+                        mAdapter.notifyDataSetChanged();
+                      }
                     }
                   });
 
