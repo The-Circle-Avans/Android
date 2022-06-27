@@ -20,7 +20,11 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -33,7 +37,9 @@ import com.pedro.encoder.input.video.CameraOpenException;
 import com.pedro.rtmp.utils.ConnectCheckerRtmp;
 import com.pedro.rtplibrary.rtmp.RtmpCamera1;
 import com.pedro.rtpstreamer.LoginActivity;
+import com.pedro.rtpstreamer.MainActivity;
 import com.pedro.rtpstreamer.R;
+import com.pedro.rtpstreamer.RecyclerAdapter;
 import com.pedro.rtpstreamer.utils.PathUtils;
 
 import org.json.JSONArray;
@@ -44,7 +50,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import io.socket.client.IO;
@@ -63,11 +71,14 @@ public class ExampleRtmpActivity extends AppCompatActivity
 
   private RtmpCamera1 rtmpCamera1;
   private Button button;
-  private EditText etUrl;
-
   private String currentDateAndTime = "";
   private File folder;
   private String TAG = "RTMPACTivitY";
+
+  RecyclerAdapter mAdapter;
+  RecyclerView mRecyclerview;
+  ArrayList<String> chats = new ArrayList<>();
+
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +95,14 @@ public class ExampleRtmpActivity extends AppCompatActivity
     rtmpCamera1 = new RtmpCamera1(surfaceView, this);
     rtmpCamera1.setAuthorization(sharedPreferences.getString("userName", null), sharedPreferences.getString("privateKey", null));
     rtmpCamera1.setReTries(10);
+
+    //setup recyclerview for chat
+
+    mRecyclerview = findViewById(R.id.recyclerView);
+    mRecyclerview.setLayoutManager(new LinearLayoutManager(this));
+    mAdapter = new RecyclerAdapter(this, chats);
+    mRecyclerview.setAdapter(mAdapter);
+
     surfaceView.getHolder().addCallback(this);
   }
 
@@ -168,9 +187,8 @@ public class ExampleRtmpActivity extends AppCompatActivity
             SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.PREFS_NAME, 0);
             String userName = sharedPreferences.getString("userName", null);
             String streamUrl = "rtmp://10.0.2.2/live/" + userName;
-            Log.i(TAG, "establishing connection booss");
             try {
-              establishSocketConnection();
+              establishSocketConnection(userName);
             } catch (JSONException e) {
               e.printStackTrace();
             }
@@ -196,7 +214,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
     }
   }
 
-  private void establishSocketConnection() throws JSONException {
+  private void establishSocketConnection(String userName) throws JSONException {
     URI uri = URI.create("ws://10.0.2.2:3500");
     IO.Options options = IO.Options.builder()
             // IO factory options
@@ -223,18 +241,14 @@ public class ExampleRtmpActivity extends AppCompatActivity
             .setAuth(null)
             .build();
     Socket mSocket = IO.socket(uri, options);
-    Log.i(TAG, "Socket ID: " + mSocket.id());
     mSocket.connect();
-    Log.i(TAG, "we zijn er voorbij?");
-
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put("msg", "hi");
-    jsonObject.put("username", "Boris");
-    jsonObject.put("stream", "Boris");
-
+    jsonObject.put("msg", "Connecting streamer");
+    jsonObject.put("username", "Streamer");
+    jsonObject.put("stream", userName);
 
     mSocket.on(Socket.EVENT_CONNECT, (args -> {
-      Log.i(TAG, "we zijn connected fr fr");
+      Log.i(TAG, "we are connected to the socket");
       Log.i(TAG, "Socket ID: " + mSocket.id());
 
     })).emit("joinStream", jsonObject)
@@ -242,11 +256,29 @@ public class ExampleRtmpActivity extends AppCompatActivity
               @Override
               public void call(Object... args) {
                 JSONObject obj = (JSONObject) args[0];
-                String message = obj.toString();
-                Log.i(TAG, "message: " + message);
+                JSONObject deeper = null;
+                try {
+                  deeper = obj.getJSONObject("message");
+                  String chat = deeper.getString("text");
+                  Log.i(TAG, chat);
+
+
+                  runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                      chats.add(chat);
+                      mAdapter.notifyDataSetChanged();
+                    }
+                  });
+
+                } catch (JSONException e) {
+                  e.printStackTrace();
+                }
+
               }
             });
   }
+
 
   @Override
   public void surfaceCreated(SurfaceHolder surfaceHolder) {

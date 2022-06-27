@@ -32,7 +32,7 @@ public class LoginResponse {
 
     /**
      *
-     * @param level
+     * @param id
      * The Level
      */
     public void setId(String id) {
