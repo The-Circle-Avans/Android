@@ -56,8 +56,17 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -189,6 +198,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
     });
   }
 
+  @RequiresApi(api = Build.VERSION_CODES.O)
   @Override
   public void onClick(View view) {
     switch (view.getId()) {
@@ -228,6 +238,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
     }
   }
 
+  @RequiresApi(api = Build.VERSION_CODES.O)
   private void establishSocketConnection(String userName) throws JSONException {
     URI uri = URI.create("ws://10.0.2.2:3500");
     IO.Options options = IO.Options.builder()
@@ -256,10 +267,40 @@ public class ExampleRtmpActivity extends AppCompatActivity
             .build();
     Socket mSocket = IO.socket(uri, options);
     mSocket.connect();
+
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put("msg", "Connecting streamer");
-    jsonObject.put("username", "Streamer");
-    jsonObject.put("stream", userName);
+    JSONObject nestedJson = new JSONObject();
+
+    nestedJson.put("msg", "Hoi");
+    nestedJson.put("username", userName);
+    nestedJson.put("timestamp", LocalDateTime.now());
+
+    byte[] signatureBytes = null;
+
+    try
+    {
+      // Convert the json object to a byte array
+      byte[] data = nestedJson.toString().getBytes(StandardCharsets.UTF_8);
+
+      // Retrieve the private key from the shared preferences
+      SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.PREFS_NAME, 0);
+      String PEMprivateKey = sharedPreferences.getString("privateKey", null);
+      PrivateKey privateKey = lm.generatePrivateKey(PEMprivateKey);
+
+      // Create a signature
+      Signature sig = Signature.getInstance("SHA256withRSA");
+      sig.initSign(privateKey);
+      sig.update(data);
+
+      // Create the signature
+      signatureBytes = sig.sign();
+    } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+      e.printStackTrace();
+    }
+
+    jsonObject.put("signature", signatureBytes);
+    jsonObject.put("timestamp", LocalDateTime.now());
+    jsonObject.put("message", nestedJson);
 
     mSocket.on(Socket.EVENT_CONNECT, (args -> {
       Log.i(TAG, "we are connected to the socket");
@@ -267,7 +308,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
 
     })).emit("joinStream", jsonObject)
             .on("message", new Emitter.Listener() {
-              @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+              @RequiresApi(api = Build.VERSION_CODES.O)
               @Override
               public void call(Object... args) {
                 JSONObject obj = (JSONObject) args[0];
@@ -279,14 +320,22 @@ public class ExampleRtmpActivity extends AppCompatActivity
                   deeper = obj.getJSONObject("message");
                   String chat = deeper.getString("text");
                   String sender = deeper.getString("username");
+                  String timeStamp = deeper.getString("time");
                   Log.i(TAG, chat);
+
+                  if (calculateDifference(timeStamp, LocalDateTime.now().toString(), "minute") > 5)
+                  {
+                    Toast.makeText(getApplicationContext(), "Old message", Toast.LENGTH_SHORT).show();
+                    Log.i(TAG, "There was an outdated message!");
+                    return;
+                  }
 
                   if (PEMKeyChat.equals(""))
                   {
                     Retrofit retrofit = ApiClient.getRetrofitInstance();
                     final UserService api = retrofit.create(UserService.class);
 
-                    Call<LoginResponse> call = api.getUserByName("chat-backend");
+                    Call<LoginResponse> call = api.getUserByName("Chat");
                     call.enqueue(new Callback<LoginResponse>() {
                       @Override
                       public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
@@ -365,5 +414,29 @@ public class ExampleRtmpActivity extends AppCompatActivity
       button.setText(getResources().getString(R.string.start_button));
     }
     rtmpCamera1.stopPreview();
+  }
+
+  private Long calculateDifference(String date1, String date2, String value) {
+    Timestamp date_1 = stringToTimestamp(date1);
+    Timestamp date_2 = stringToTimestamp(date2);
+    long milliseconds = date_1.getTime() - date_2.getTime();
+    if (value.equals("second"))
+      return milliseconds / 1000;
+    if (value.equals("minute"))
+      return milliseconds / 1000 / 60;
+    if (value.equals("hours"))
+      return milliseconds / 1000 / 3600;
+    else
+      return new Long(999999999);
+  }
+
+  private Timestamp stringToTimestamp(String date) {
+    try {
+      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+      Date parsedDate = dateFormat.parse(date);
+      return new Timestamp(parsedDate.getTime());
+    } catch (Exception e) {
+      return null;
+    }
   }
 }

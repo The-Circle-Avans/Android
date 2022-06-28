@@ -120,7 +120,7 @@ public class LoginManager
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private PrivateKey generatePrivateKey (String privateKeyPEM)  {
+    public PrivateKey generatePrivateKey (String privateKeyPEM)  {
         try
         {
             // Generate the private key from a generated keypair
