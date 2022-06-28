@@ -49,6 +49,7 @@ import com.pedro.rtpstreamer.domain.ChatMessage;
 import com.pedro.rtpstreamer.utils.LoginManager;
 import com.pedro.rtpstreamer.utils.PathUtils;
 
+import org.bouncycastle.asn1.x509.UserNotice;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -273,6 +274,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
 
     nestedJson.put("msg", "Hoi");
     nestedJson.put("username", userName);
+    nestedJson.put("stream", userName);
     nestedJson.put("timestamp", LocalDateTime.now());
 
     byte[] signatureBytes = null;
@@ -280,14 +282,16 @@ public class ExampleRtmpActivity extends AppCompatActivity
     try
     {
       // Convert the json object to a byte array
-      byte[] data = nestedJson.toString().getBytes(StandardCharsets.UTF_8);
+      String dati = "Hoi" + userName + userName;
+      byte[] data = dati.getBytes(StandardCharsets.UTF_8);
+
 
       // Retrieve the private key from the shared preferences
       SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.PREFS_NAME, 0);
       String PEMprivateKey = sharedPreferences.getString("privateKey", null);
       PrivateKey privateKey = lm.generatePrivateKey(PEMprivateKey);
 
-      // Create a signature
+      // Initialize signature
       Signature sig = Signature.getInstance("SHA256withRSA");
       sig.initSign(privateKey);
       sig.update(data);
