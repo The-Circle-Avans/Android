@@ -65,12 +65,14 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -99,6 +101,8 @@ public class ExampleRtmpActivity extends AppCompatActivity
   private LoginManager lm = new LoginManager();
   private String PEMKeyChat = "";
 
+  final private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+
   RecyclerAdapter mAdapter;
   RecyclerView mRecyclerview;
   ArrayList<ChatMessage> chats = new ArrayList<>();
@@ -119,6 +123,8 @@ public class ExampleRtmpActivity extends AppCompatActivity
     rtmpCamera1 = new RtmpCamera1(surfaceView, this);
     rtmpCamera1.setAuthorization(sharedPreferences.getString("userName", null), sharedPreferences.getString("privateKey", null));
     rtmpCamera1.setReTries(10);
+
+    sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 
     //setup recyclerview for chat
 
@@ -327,7 +333,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
                   String timeStamp = deeper.getString("time");
                   Log.i(TAG, chat);
 
-                  if (calculateDifference(timeStamp, LocalDateTime.now().toString(), "minute") > 5)
+                  if (calculateDifference(timeStamp, sdf.format(new Date()), "minute") > 5)
                   {
                     Toast.makeText(getApplicationContext(), "Old message", Toast.LENGTH_SHORT).show();
                     Log.i(TAG, "There was an outdated message!");
@@ -339,7 +345,7 @@ public class ExampleRtmpActivity extends AppCompatActivity
                     Retrofit retrofit = ApiClient.getRetrofitInstance();
                     final UserService api = retrofit.create(UserService.class);
 
-                    Call<LoginResponse> call = api.getUserByName("Chat");
+                    Call<LoginResponse> call = api.getUserByName("chatserver");
                     call.enqueue(new Callback<LoginResponse>() {
                       @Override
                       public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
@@ -436,10 +442,11 @@ public class ExampleRtmpActivity extends AppCompatActivity
 
   private Timestamp stringToTimestamp(String date) {
     try {
-      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
       Date parsedDate = dateFormat.parse(date);
       return new Timestamp(parsedDate.getTime());
     } catch (Exception e) {
+      e.printStackTrace();
       return null;
     }
   }
